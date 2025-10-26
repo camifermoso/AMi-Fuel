@@ -1,3 +1,7 @@
 
 # FastF1 cache
 cache/
+
+# Large artifacts (kept locally)
+outputs/*.pkl
+outputs/*.joblib
