@@ -1,0 +1,5 @@
+Circuit Type,AM Baseline Fuel,Best Strategy,Expected Savings,Lap Time Cost,AM Advantage,Driver Notes
+"HIGH-SPEED (Monza, Spa, Baku)",~105-110 kg race distance,"RPM -4%, exploit DRS efficiency",~2.8-3.5 kg per race,+0.15-0.25s,"Mercedes PU strong at high speeds, good DRS efficiency",Smooth on throttle in Parabolica/Eau Rouge
+"STREET (Monaco, Singapore, Jeddah)",~95-100 kg race distance,"Gear +0.3 higher, throttle -5%",~2.0-2.5 kg per race,+0.12-0.20s,"Lower fuel consumption baseline, easier to save",Use higher gears in slow corners (T1-T3 Singapore)
+"MIXED (Barcelona, Silverstone, Austin)",~100-105 kg race distance,"RPM -3%, Throttle -3% balanced",~2.2-2.8 kg per race,+0.15-0.25s,Well-balanced car suits mixed circuits,Focus on high-speed sections (Maggots/Becketts)
+"HIGH ALTITUDE (Mexico, Brazil)",~98-103 kg race distance,RPM management + ERS optimization,~2.5-3.2 kg per race,+0.10-0.18s,Mercedes PU handles thin air well,Short-shift more aggressively than usual

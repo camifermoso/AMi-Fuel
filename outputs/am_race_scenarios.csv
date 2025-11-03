@@ -1,0 +1,5 @@
+Scenario,Strategy,Total Fuel Saved/Lap,Fuel Saved (55 laps),Lap Time Impact,When to Use,AM Advantage
+1. MINIMAL IMPACT (AM Optimized),RPM -2% (Mercedes PU sweet spot),~0.12-0.18%,~0.60-0.90 kg,+0.03-0.08s per lap,Managing fuel to finish comfortably,Mercedes PU torque curve optimized for this
+2. BALANCED SAVE (AM Strength),RPM -5% + Throttle -3%,~0.45-0.60%,~2.25-3.00 kg,+0.15-0.30s per lap,Target 2-3kg savings over race,Good aero efficiency allows coasting
+3. CRITICAL SAVE (AM Emergency),RPM -10% + Throttle -8% + Gear +0.3,~0.90-1.20%,~4.50-6.00 kg,+0.50-0.80s per lap,Must save fuel to finish race,Better fuel efficiency than most midfield teams
+4. TIRE & FUEL (Long Stint),Throttle -3% + RPM -3% smooth inputs,~0.25-0.35%,~1.25-1.75 kg,+0.10-0.20s per lap,"Extending stint, managing both resources","AMR24 kind on tires, can combine strategies"
