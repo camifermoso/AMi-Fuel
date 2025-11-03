@@ -8,3 +8,4 @@ fastf1>=3.0.0
 xgboost>=1.7.0
 lightgbm>=4.0.0
 scipy>=1.10.0
+plotly>=5.10.0
