@@ -1,0 +1,5 @@
+Circuit Type,AM Baseline Fuel,Best Strategy,Fuel Saved,Time Cost/Lap,Time Cost (Race),Positions Impact,AM Advantage,Critical Notes
+"HIGH-SPEED (Monza, Spa, Baku)",105-110 kg,"RPM -4%, DRS optimization",2.8-3.5 kg,0.125s,6.88s,~1 position,Mercedes PU strong at high speeds,Smooth on throttle in Parabolica/Eau Rouge
+"STREET (Monaco, Singapore, Jeddah)",95-100 kg,"Gear +0.3, Throttle -5%",2.0-2.5 kg,0.160s,8.80s,~1 position,Lower baseline consumption,Higher gears in slow corners (T1-T3 Singapore)
+"MIXED (Barcelona, Silverstone, Austin)",100-105 kg,"RPM -3%, Throttle -3%",2.2-2.8 kg,0.185s,10.18s,~1-2 positions,Well-balanced car,Focus on high-speed sections (Maggots/Becketts)
+"HIGH ALTITUDE (Mexico, Brazil)",98-103 kg,RPM management + ERS,2.5-3.2 kg,0.105s,5.78s,~0-1 position,Mercedes PU handles thin air,Short-shift more aggressively than usual
