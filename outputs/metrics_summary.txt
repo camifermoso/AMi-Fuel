@@ -1,0 +1,34 @@
+AMi-FUEL MODEL PERFORMANCE SUMMARY
+============================================================
+
+Model Type: xgboost
+Stacking: False
+Hyperparameter Tuning: True
+Enhanced Features: True
+Features Used: 56
+
+VALIDATION METRICS
+------------------------------------------------------------
+r2: 0.9999
+mae: 0.0001
+rmse: 0.0001
+mape: 0.0117
+
+TEST METRICS (HELD-OUT)
+------------------------------------------------------------
+r2: 0.8899
+mae: 0.0055
+rmse: 0.0075
+mape: 0.9347
+
+BEST HYPERPARAMETERS
+------------------------------------------------------------
+subsample: 0.9
+reg_lambda: 1.0
+reg_alpha: 0
+n_estimators: 300
+min_child_weight: 3
+max_depth: 9
+learning_rate: 0.05
+gamma: 0
+colsample_bytree: 0.9
