@@ -57,13 +57,33 @@ def fetch_session(year: int, gp_name: str, session_code: str = "R") -> pd.DataFr
         "SpeedI1", "SpeedI2", "SpeedFL", "TrackStatus"
     ]].copy()
 
-    # Aggregate per-lap telemetry
+    # Get weather data for the session
+    weather_data = session.weather_data
+    
+    # Aggregate per-lap telemetry + weather
     rows = []
     for _, lap in laps.iterlaps():
         try:
             tel = lap.get_telemetry()
             if tel is None or tel.empty:
                 continue
+            
+            # Get weather at lap time
+            lap_time = lap["LapStartTime"]
+            if weather_data is not None and not weather_data.empty and lap_time is not None:
+                # Find closest weather reading to lap start time
+                weather_at_lap = weather_data.iloc[(weather_data['Time'] - lap_time).abs().argmin()]
+                air_temp = float(weather_at_lap['AirTemp']) if 'AirTemp' in weather_at_lap else None
+                track_temp = float(weather_at_lap['TrackTemp']) if 'TrackTemp' in weather_at_lap else None
+                humidity = float(weather_at_lap['Humidity']) if 'Humidity' in weather_at_lap else None
+                pressure = float(weather_at_lap['Pressure']) if 'Pressure' in weather_at_lap else None
+                rainfall = bool(weather_at_lap['Rainfall']) if 'Rainfall' in weather_at_lap else False
+                wind_speed = float(weather_at_lap['WindSpeed']) if 'WindSpeed' in weather_at_lap else None
+                wind_direction = float(weather_at_lap['WindDirection']) if 'WindDirection' in weather_at_lap else None
+            else:
+                air_temp = track_temp = humidity = pressure = wind_speed = wind_direction = None
+                rainfall = False
+            
             row = {
                 "LapNumber": int(lap["LapNumber"]),
                 "avg_throttle": float(tel["Throttle"].mean(skipna=True)) if "Throttle" in tel else None,
@@ -72,6 +92,14 @@ def fetch_session(year: int, gp_name: str, session_code: str = "R") -> pd.DataFr
                 "avg_gear": float(tel["nGear"].mean(skipna=True)) if "nGear" in tel else None,
                 "avg_drs": float(tel["DRS"].mean(skipna=True)) if "DRS" in tel else None,
                 "avg_ers_mode": float(tel["ERSDeployMode"].mean(skipna=True)) if "ERSDeployMode" in tel else None,
+                # Weather features
+                "air_temp": air_temp,
+                "track_temp": track_temp,
+                "humidity": humidity,
+                "pressure": pressure,
+                "rainfall": rainfall,
+                "wind_speed": wind_speed,
+                "wind_direction": wind_direction,
             }
             rows.append(row)
         except Exception as e:

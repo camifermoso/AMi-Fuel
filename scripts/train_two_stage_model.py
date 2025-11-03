@@ -93,10 +93,18 @@ class TwoStageAMFuelModel:
         # Core telemetry features
         base_features = ['avg_throttle', 'avg_rpm', 'avg_speed', 'avg_gear']
         
+        # Weather features (if available)
+        weather_features = ['air_temp', 'track_temp', 'humidity', 'pressure', 'wind_speed']
+        available_weather = [f for f in weather_features if f in df.columns]
+        
         # Fill missing values
         for col in base_features:
             if col in df.columns:
                 df[col] = df[col].fillna(df[col].median())
+        
+        # Fill missing weather values with session median
+        for col in available_weather:
+            df[col] = df[col].fillna(df[col].median())
         
         # Per-team normalization of telemetry
         df = self.normalize_per_team(df, base_features, fit=fit)
@@ -125,12 +133,24 @@ class TwoStageAMFuelModel:
         df['throttle_sq'] = df['avg_throttle'] ** 2
         df['rpm_sq'] = df['avg_rpm'] ** 2
         
+        # Weather interaction features (if available)
+        if 'air_temp' in available_weather and 'humidity' in available_weather:
+            df['temp_humidity'] = df['air_temp'] * df['humidity']
+        if 'track_temp' in available_weather:
+            df['track_temp_sq'] = df['track_temp'] ** 2
+        
         # Final feature set
-        feature_cols = base_features + [
+        feature_cols = base_features + available_weather + [
             'team_encoded', 'circuit_encoded', 'year',
             'throttle_rpm', 'speed_gear', 'rpm_gear',
             'throttle_sq', 'rpm_sq'
         ]
+        
+        # Add weather interactions if they exist
+        if 'temp_humidity' in df.columns:
+            feature_cols.append('temp_humidity')
+        if 'track_temp_sq' in df.columns:
+            feature_cols.append('track_temp_sq')
         
         X = df[feature_cols].copy()
         y = df['fuel_proxy'].copy()
