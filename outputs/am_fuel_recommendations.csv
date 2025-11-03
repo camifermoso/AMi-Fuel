@@ -1,13 +1,13 @@
-Parameter,Current Value (AM),Target Value,Reduction,Fuel Saved/Lap,Fuel Saved (kg/lap),Fuel Saved (55-lap race),Implementation,Lap Time Impact,AM-Specific Notes
-Average RPM,10042.9 RPM,9038.6 RPM,10%,17.71%,0.266,14.61 kg,"Aggressive short-shifting, upshift 2000 RPM early",+0.30-0.50s,Risk losing exit speed on slower corners
-Average RPM,10042.9 RPM,9540.7 RPM,5%,8.86%,0.133,7.31 kg,"Short-shift by 1000 RPM, avoid redline",+0.10-0.20s,Good low-end torque - short-shifting effective
-Average Speed,200.2 km/h,180.2 km/h,10%,7.70%,0.116,6.36 kg,Significant speed reduction (major time loss),+1.00-1.50s,Last resort - significant competitiveness impact
-Average Throttle,64.0 %,57.6 %,10%,6.82%,0.102,5.63 kg,"Lift & coast before braking, reduce peak throttle",+0.40-0.60s,May affect tire temps - monitor closely
-Average Speed,200.2 km/h,190.2 km/h,5%,3.85%,0.058,3.18 kg,Moderate lift in high-speed corners,+0.40-0.70s,Consider trade-off with tire deg on long stints
-Average Gear,5.2 ,4.7 ,10%,3.76%,0.056,3.10 kg,Significant gear changes (affects driveability),+0.50-0.80s,Check with driver comfort - major change
-Average RPM,10042.9 RPM,9842.0 RPM,2%,3.54%,0.053,2.92 kg,Short-shift by 500 RPM,+0.03-0.08s,Mercedes PU optimal torque curve allows early shifts
-Average Throttle,64.0 %,60.8 %,5%,3.41%,0.051,2.81 kg,"Smooth throttle application, avoid aggressive inputs",+0.15-0.25s,AMR23/24 has good aero - can coast more
-Average Gear,5.2 ,4.9 ,5%,1.88%,0.028,1.55 kg,Skip gears where possible,+0.15-0.30s,May feel unnatural for driver - practice needed
-Average Speed,200.2 km/h,196.2 km/h,2%,1.54%,0.023,1.27 kg,Slightly conservative corner entries,+0.15-0.25s,AMR aero efficiency helps maintain speed with less throttle
-Average Throttle,64.0 %,62.7 %,2%,1.36%,0.020,1.13 kg,Lift 50m earlier in braking zones,+0.05-0.10s,Mercedes PU responds well to smooth inputs
-Average Gear,5.2 ,5.1 ,2%,0.75%,0.011,0.62 kg,Use higher gear in slow corners,+0.05-0.10s,Use 8-speed gearbox efficiency
+Parameter,Current Value (AM),Target Value,Reduction,Fuel Saved/Lap,Fuel Saved (kg/race),Time Cost/Lap,Time Cost/Race,Cost-Benefit,Implementation,AM-Specific Notes
+Average RPM,10042.9 RPM,9038.6 RPM,10%,17.71%,14.61 kg,0.400s,22.00s,0.664 kg/s,"Aggressive short-shifting, upshift 2000 RPM early",Risk losing exit speed on slower corners
+Average RPM,10042.9 RPM,9540.7 RPM,5%,8.86%,7.31 kg,0.150s,8.25s,0.886 kg/s,"Short-shift by 1000 RPM, avoid redline",Good low-end torque - short-shifting effective
+Average Speed,200.2 km/h,180.2 km/h,10%,7.70%,6.36 kg,1.250s,68.75s,0.092 kg/s,Significant speed reduction (major time loss),Last resort - significant competitiveness impact
+Average Throttle,64.0 %,57.6 %,10%,6.82%,5.63 kg,0.500s,27.50s,0.205 kg/s,"Lift & coast before braking, reduce peak throttle",May affect tire temps - monitor closely
+Average Speed,200.2 km/h,190.2 km/h,5%,3.85%,3.18 kg,0.550s,30.25s,0.105 kg/s,Moderate lift in high-speed corners,Consider trade-off with tire deg on long stints
+Average Gear,5.2 ,4.7 ,10%,3.76%,3.10 kg,0.650s,35.75s,0.087 kg/s,Significant gear changes (affects driveability),Check with driver comfort - major change
+Average RPM,10042.9 RPM,9842.0 RPM,2%,3.54%,2.92 kg,0.055s,3.02s,0.966 kg/s,Short-shift by 500 RPM,Mercedes PU optimal torque curve allows early shifts
+Average Throttle,64.0 %,60.8 %,5%,3.41%,2.81 kg,0.200s,11.00s,0.256 kg/s,"Smooth throttle application, avoid aggressive inputs",AMR23/24 has good aero - can coast more
+Average Gear,5.2 ,4.9 ,5%,1.88%,1.55 kg,0.225s,12.38s,0.125 kg/s,Skip gears where possible,May feel unnatural for driver - practice needed
+Average Speed,200.2 km/h,196.2 km/h,2%,1.54%,1.27 kg,0.200s,11.00s,0.116 kg/s,Slightly conservative corner entries,AMR aero efficiency helps maintain speed with less throttle
+Average Throttle,64.0 %,62.7 %,2%,1.36%,1.13 kg,0.075s,4.12s,0.273 kg/s,Lift 50m earlier in braking zones,Mercedes PU responds well to smooth inputs
+Average Gear,5.2 ,5.1 ,2%,0.75%,0.62 kg,0.075s,4.12s,0.151 kg/s,Use higher gear in slow corners,Use 8-speed gearbox efficiency
