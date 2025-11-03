@@ -1,0 +1,13 @@
+Parameter,Current Value,Target Value,Reduction,Fuel Saved/Lap,Fuel Saved (kg/lap),Fuel Saved (55-lap race),Implementation,Lap Time Impact
+Average RPM,9891.2 RPM,8902.1 RPM,10%,5.01%,0.075,4.13 kg,"Aggressive short-shifting, upshift 2000 RPM early",+0.30-0.50s
+Average Speed,191.1 km/h,172.0 km/h,10%,4.83%,0.072,3.98 kg,Significant speed reduction (major time loss),+1.00-1.50s
+Average Gear,4.9 ,4.4 ,10%,3.33%,0.050,2.74 kg,Significant gear changes (affects driveability),+0.50-0.80s
+Average RPM,9891.2 RPM,9396.6 RPM,5%,2.51%,0.038,2.07 kg,"Short-shift by 1000 RPM, avoid redline",+0.10-0.20s
+Average Speed,191.1 km/h,181.5 km/h,5%,2.41%,0.036,1.99 kg,Moderate lift in high-speed corners,+0.40-0.70s
+Average Gear,4.9 ,4.7 ,5%,1.66%,0.025,1.37 kg,Skip gears where possible,+0.15-0.30s
+Average RPM,9891.2 RPM,9693.4 RPM,2%,1.00%,0.015,0.83 kg,Short-shift by 500 RPM,+0.03-0.08s
+Average Speed,191.1 km/h,187.3 km/h,2%,0.97%,0.014,0.80 kg,Slightly conservative corner entries,+0.15-0.25s
+Average Gear,4.9 ,4.8 ,2%,0.67%,0.010,0.55 kg,Use higher gear in slow corners,+0.05-0.10s
+Average Throttle,62.0 %,55.8 %,10%,0.44%,0.007,0.36 kg,"Lift & coast before braking, reduce peak throttle",+0.40-0.60s
+Average Throttle,62.0 %,58.9 %,5%,0.22%,0.003,0.18 kg,"Smooth throttle application, avoid aggressive inputs",+0.15-0.25s
+Average Throttle,62.0 %,60.8 %,2%,0.09%,0.001,0.07 kg,Lift 50m earlier in braking zones,+0.05-0.10s
