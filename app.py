@@ -132,6 +132,46 @@ st.markdown("""
     }
 
 </style>
+
+<script>
+    // Remove "keyboard_arrow_right" text from expanders
+    function cleanExpanderIcons() {
+        const expanders = document.querySelectorAll('[data-testid="stExpander"] summary');
+        expanders.forEach(expander => {
+            // Get all text nodes
+            const walker = document.createTreeWalker(
+                expander,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            const nodesToRemove = [];
+            while(node = walker.nextNode()) {
+                if (node.textContent.includes('keyboard_arrow')) {
+                    nodesToRemove.push(node);
+                }
+            }
+            
+            nodesToRemove.forEach(n => n.remove());
+        });
+    }
+    
+    // Run on page load and after Streamlit updates
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', cleanExpanderIcons);
+    } else {
+        cleanExpanderIcons();
+    }
+    
+    // Re-run after Streamlit renders (use MutationObserver)
+    const observer = new MutationObserver(cleanExpanderIcons);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Clean up after 5 seconds to prevent infinite observation
+    setTimeout(() => observer.disconnect(), 5000);
+</script>
 """, unsafe_allow_html=True)
 
 
