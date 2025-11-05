@@ -96,6 +96,35 @@ st.markdown("""
         padding: 10px;
         border-radius: 5px;
     }
+    
+    /* Fix Material Icons rendering in expanders */
+    .streamlit-expanderHeader {
+        font-family: 'Darkmode Off CC Regular', -apple-system, sans-serif !important;
+    }
+    
+    /* Hide the material icons text and show only the SVG arrow */
+    [data-testid="stExpander"] summary p {
+        display: inline !important;
+    }
+    
+    /* Force hide any text that says "keyboard_arrow_right" */
+    [data-testid="stExpander"] summary::after {
+        content: none !important;
+    }
+    
+    /* Target the icon specifically - hide text fallback */
+    [data-testid="stExpander"] svg {
+        display: inline-block !important;
+    }
+    
+    /* Hide any span that contains the material icon text */
+    [data-testid="stExpander"] summary span:not(:has(p)) {
+        font-size: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
