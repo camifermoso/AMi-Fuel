@@ -451,9 +451,17 @@ def main():
     print("="*80)
     print()
     
-    # Load data
-    train_df = pd.read_csv('data/train_highfuel.csv')
-    test_df = pd.read_csv('data/test_highfuel.csv')
+    # Load expanded data with weather features
+    print("📂 Loading expanded training data...")
+    train_df = pd.read_csv('data/train_highfuel_expanded.csv')
+    test_df = pd.read_csv('data/test_highfuel_expanded.csv')
+    
+    print(f"✓ Training set: {len(train_df):,} laps")
+    print(f"✓ Test set: {len(test_df):,} laps")
+    print(f"✓ Years: {sorted(train_df['year'].unique())}")
+    print(f"✓ Circuits: {train_df['gp'].nunique()} unique")
+    print(f"✓ Weather features included: 7 parameters")
+    print()
     
     # Compare approaches
     model, results = compare_baselines(train_df, test_df)

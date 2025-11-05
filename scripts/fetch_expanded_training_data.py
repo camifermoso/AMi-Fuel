@@ -8,9 +8,30 @@ import fastf1
 import pandas as pd
 from pathlib import Path
 import random
+import signal
+from contextlib import contextmanager
 
 # Enable on-disk cache
 fastf1.Cache.enable_cache("cache")
+
+
+class TimeoutException(Exception):
+    """Custom exception for timeout."""
+    pass
+
+
+@contextmanager
+def time_limit(seconds):
+    """Context manager for timing out operations."""
+    def signal_handler(signum, frame):
+        raise TimeoutException(f"Timed out after {seconds} seconds")
+    
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 # Primary high-fuel circuits - train on many years
 HIGH_FUEL_CIRCUITS = {
@@ -36,11 +57,16 @@ ADDITIONAL_CIRCUITS = {
 }
 
 
-def fetch_session(year: int, gp_name: str, session_code: str = "R") -> pd.DataFrame:
+def fetch_session(year: int, gp_name: str, session_code: str = "R", timeout: int = 180) -> pd.DataFrame:
     """Download a race session and return lap-aggregated features."""
     try:
-        session = fastf1.get_session(year, gp_name, session_code)
-        session.load()
+        # Use timeout to prevent hanging
+        with time_limit(timeout):
+            session = fastf1.get_session(year, gp_name, session_code)
+            session.load()
+    except TimeoutException as e:
+        print(f"   ⏱️  Timeout loading {year} {gp_name} (>{timeout}s)")
+        return pd.DataFrame()
     except Exception as e:
         print(f"   ⚠️  Failed to load {year} {gp_name}: {e}")
         return pd.DataFrame()
@@ -135,15 +161,27 @@ def fetch_multi_year_data():
     print("-"*80)
     high_fuel_years = range(2018, 2025)  # 2018-2024
     
+    total_sessions = len(HIGH_FUEL_CIRCUITS) * len(high_fuel_years)
+    completed = 0
+    
     for gp_key, gp_name in HIGH_FUEL_CIRCUITS.items():
         print(f"\n🏁 {gp_name}")
         for year in high_fuel_years:
+            completed += 1
+            print(f"   [{completed}/{total_sessions}] Fetching {year}...", end=" ", flush=True)
             df = fetch_session(year, gp_name)
             if not df.empty:
                 df["year"] = year
                 df["gp"] = gp_key
                 df["circuit_type"] = "high_fuel"
                 all_frames.append(df)
+                print(f"✓ ({len(df)} laps)")
+            else:
+                print("✗ (no data)")
+    
+    print()
+    print(f"✓ Phase 1 complete: {len(all_frames)} sessions fetched")
+    print()
     
     print()
     print()
@@ -152,6 +190,9 @@ def fetch_multi_year_data():
     
     # 2. Additional circuits: sample 3 random years each
     all_years = list(range(2018, 2025))
+    phase1_count = len(all_frames)
+    total_additional = len(ADDITIONAL_CIRCUITS) * 3
+    completed_additional = 0
     
     for gp_key, gp_name in ADDITIONAL_CIRCUITS.items():
         print(f"\n🏁 {gp_name}")
@@ -160,12 +201,21 @@ def fetch_multi_year_data():
         sampled_years.sort()
         
         for year in sampled_years:
+            completed_additional += 1
+            print(f"   [{completed_additional}/{total_additional}] Fetching {year}...", end=" ", flush=True)
             df = fetch_session(year, gp_name)
             if not df.empty:
                 df["year"] = year
                 df["gp"] = gp_key
                 df["circuit_type"] = "additional"
                 all_frames.append(df)
+                print(f"✓ ({len(df)} laps)")
+            else:
+                print("✗ (no data)")
+    
+    print()
+    print(f"✓ Phase 2 complete: {len(all_frames) - phase1_count} sessions fetched")
+    print()
     
     print()
     print()
