@@ -224,7 +224,9 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
         top_3 = params_copy.nlargest(3, 'fuel_saved_num')
         
         for idx, row in top_3.iterrows():
-            with st.expander(f"#{idx+1}: {row['Parameter']}"):
+            param_name = row['Parameter']
+            reduction = row['Reduction']
+            with st.expander(f"#{top_3.index.get_loc(idx)+1}: {param_name} ({reduction})", expanded=(top_3.index.get_loc(idx)==0)):
                 st.write(f"**Reduction:** {row['Reduction']}")
                 st.write(f"**Fuel Saved:** {row['Fuel Saved (kg/race)']}")
                 st.write(f"**Time Cost:** {row['Time Cost/Race']}")
@@ -237,7 +239,8 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
             top_scenarios = scenarios_df.nlargest(3, 'Fuel Saved')
             
             for idx, row in top_scenarios.iterrows():
-                with st.expander(f"{row['Scenario']}"):
+                scenario_name = row['Scenario']
+                with st.expander(f"{scenario_name}"):
                     st.write(f"**Fuel Saved:** {row['Fuel Saved (Race)']}")
                     st.write(f"**Time Cost:** {row['Time Cost (Race)']}")
                     st.write(f"**Strategy:** {row['Strategy']}")
@@ -282,7 +285,9 @@ def show_recommendations(params_df):
     
     # Display recommendations
     for idx, row in params_df.iterrows():
-        with st.expander(f"**{row['Parameter']}** - {row['Reduction']}", expanded=(idx==0)):
+        param_name = row['Parameter']
+        reduction = row['Reduction']
+        with st.expander(f"**{param_name}** - {reduction}", expanded=(idx==0)):
             col1, col2, col3 = st.columns(3)
             
             with col1:
@@ -313,7 +318,8 @@ def show_race_scenarios(scenarios_df):
         scenario_types = scenarios_df['Scenario'].unique()
         
         for scenario in scenario_types:
-            with st.expander(f"📋 {scenario}", expanded=True):
+            scenario_name = str(scenario)
+            with st.expander(f"📋 {scenario_name}", expanded=True):
                 scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
                 
                 col1, col2, col3 = st.columns(3)
