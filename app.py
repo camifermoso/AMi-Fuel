@@ -102,27 +102,22 @@ st.markdown("""
         font-family: 'Darkmode Off CC Regular', -apple-system, sans-serif !important;
     }
     
-    /* Hide the material icons text and show only the SVG arrow */
+    /* Ensure expander content displays properly */
+    [data-testid="stExpander"] summary {
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Make sure the text content is visible */
     [data-testid="stExpander"] summary p {
-        display: inline !important;
+        display: inline-block !important;
+        margin: 0 !important;
     }
     
-    /* Force hide any text that says "keyboard_arrow_right" */
-    [data-testid="stExpander"] summary::after {
-        content: none !important;
-    }
-    
-    /* Target the icon specifically - hide text fallback */
+    /* Ensure SVG arrow is visible */
     [data-testid="stExpander"] svg {
         display: inline-block !important;
-    }
-    
-    /* Hide any span that contains the material icon text */
-    [data-testid="stExpander"] summary span:not(:has(p)) {
-        font-size: 0 !important;
-        width: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
+        flex-shrink: 0 !important;
     }
 
 </style>
@@ -268,8 +263,8 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
             top_scenarios = scenarios_df.nlargest(3, 'Fuel Saved')
             
             for idx, row in top_scenarios.iterrows():
-                scenario_name = row['Scenario']
-                with st.expander(f"{scenario_name}"):
+                scenario_name = str(row['Scenario'])
+                with st.expander(f"📋 {scenario_name}", expanded=False):
                     st.write(f"**Fuel Saved:** {row['Fuel Saved (Race)']}")
                     st.write(f"**Time Cost:** {row['Time Cost (Race)']}")
                     st.write(f"**Strategy:** {row['Strategy']}")
