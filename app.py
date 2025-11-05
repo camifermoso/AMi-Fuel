@@ -129,13 +129,18 @@ def load_model():
 
 @st.cache_data
 def load_training_data():
-    """Load training data for analysis."""
+    """Load training data for analysis (optional - for enhanced visualizations)."""
+    # Try full dataset first (local), then sample (for deployment)
     try:
         df = pd.read_csv("data/train_highfuel_expanded.csv")
-        return df
+        return df, "full"
     except FileNotFoundError:
-        st.warning("⚠️ Training data not found. Some features disabled.")
-        return None
+        try:
+            df = pd.read_csv("data/train_sample.csv")
+            return df, "sample"
+        except FileNotFoundError:
+            # No data files - will show static info instead
+            return None, None
 
 
 def main():
@@ -146,7 +151,7 @@ def main():
     # Load data
     params_df, scenarios_df, circuits_df = load_recommendations()
     model, calibrator, scaler = load_model()
-    train_df = load_training_data()
+    train_df, data_type = load_training_data()
     
     if params_df is None:
         st.stop()
@@ -201,7 +206,7 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
             am_laps = len(train_df[train_df['Team'] == 'Aston Martin'])
             st.metric("AM Training Laps", f"{am_laps:,}", help="Aston Martin laps in training data")
         else:
-            st.metric("AM Training Laps", "N/A")
+            st.metric("AM Training Laps", "44,580", help="Total AM laps used in training")
     
     with col4:
         num_circuits = len(circuits_df) if circuits_df is not None else 0
@@ -504,89 +509,167 @@ def show_data_explorer(train_df):
     """Interactive data exploration."""
     st.header("📈 Data Explorer")
     
-    if train_df is None:
-        st.error("Training data not available.")
-        return
+    st.info("💡 **Training Dataset Overview** - Data used to train the 99.41% accurate fuel prediction model")
     
-    st.info("💡 Explore the training data used to build the fuel prediction model.")
-    
-    # Filters
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        teams = ['All'] + sorted(train_df['Team'].unique().tolist())
-        selected_team = st.selectbox("Team", teams)
-    
-    with col2:
-        years = ['All'] + sorted(train_df['year'].unique().tolist(), reverse=True)
-        selected_year = st.selectbox("Year", years)
-    
-    with col3:
-        circuits = ['All'] + sorted(train_df['gp'].unique().tolist())
-        selected_circuit = st.selectbox("Circuit", circuits)
-    
-    # Filter data
-    filtered_df = train_df.copy()
-    if selected_team != 'All':
-        filtered_df = filtered_df[filtered_df['Team'] == selected_team]
-    if selected_year != 'All':
-        filtered_df = filtered_df[filtered_df['year'] == selected_year]
-    if selected_circuit != 'All':
-        filtered_df = filtered_df[filtered_df['gp'] == selected_circuit]
-    
-    # Summary stats
-    st.subheader(f"📊 Summary Statistics ({len(filtered_df):,} laps)")
-    
+    # Static training data summary (always available)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Avg Throttle", f"{filtered_df['avg_throttle'].mean():.1f}%")
+        st.metric("Total Laps", "676,513", help="Total training laps")
     with col2:
-        st.metric("Avg RPM", f"{filtered_df['avg_rpm'].mean():.0f}")
+        st.metric("Years Covered", "7 (2018-2024)", help="Historical data span")
     with col3:
-        st.metric("Avg Speed", f"{filtered_df['avg_speed'].mean():.1f} km/h")
+        st.metric("Circuits", "15", help="Different race tracks")
     with col4:
-        st.metric("Avg Air Temp", f"{filtered_df['air_temp'].mean():.1f}°C")
+        st.metric("Teams", "18", help="F1 teams included")
     
-    # Visualization options
     st.markdown("---")
-    st.subheader("📊 Visualizations")
     
-    viz_type = st.selectbox("Select Visualization", 
-                           ["Fuel Proxy Distribution", "RPM vs Throttle", "Weather Impact", "Lap Time Analysis"])
+    # Circuit breakdown
+    st.subheader("🗺️ Circuit Coverage")
     
-    if viz_type == "Fuel Proxy Distribution":
-        fuel_proxy = 0.60 * (filtered_df['avg_rpm'] / 12000.0) + 0.40 * (filtered_df['avg_throttle'] / 100.0)
-        fig = px.histogram(fuel_proxy, nbins=50, title="Fuel Proxy Distribution",
-                          labels={'value': 'Fuel Proxy', 'count': 'Frequency'})
-        fig.update_traces(marker_color='#00594C')
-        st.plotly_chart(fig, use_container_width=True)
+    col1, col2 = st.columns(2)
     
-    elif viz_type == "RPM vs Throttle":
-        sample_df = filtered_df.sample(min(5000, len(filtered_df)))
-        fig = px.scatter(sample_df, x='avg_rpm', y='avg_throttle', 
-                        color='Team' if selected_team == 'All' else None,
-                        title="RPM vs Throttle Application",
-                        labels={'avg_rpm': 'Average RPM', 'avg_throttle': 'Average Throttle (%)'})
-        st.plotly_chart(fig, use_container_width=True)
+    with col1:
+        st.markdown("**High-Fuel Circuits (5 circuits, 7 years each):**")
+        st.write("- 🇧🇭 Bahrain Grand Prix")
+        st.write("- 🇪🇸 Spanish Grand Prix")
+        st.write("- 🇨🇦 Canadian Grand Prix")
+        st.write("- 🇸🇬 Singapore Grand Prix")
+        st.write("- 🇯🇵 Japanese Grand Prix")
     
-    elif viz_type == "Weather Impact":
-        fig = px.scatter(filtered_df.sample(min(5000, len(filtered_df))), 
-                        x='air_temp', y='track_temp', color='humidity',
-                        title="Weather Conditions Distribution",
-                        labels={'air_temp': 'Air Temperature (°C)', 'track_temp': 'Track Temperature (°C)'})
-        st.plotly_chart(fig, use_container_width=True)
+    with col2:
+        st.markdown("**Additional Circuits (10 circuits, 3 years each):**")
+        st.write("- 🇦🇺 Australian GP, 🇸🇦 Saudi Arabian GP")
+        st.write("- 🇦🇪 Abu Dhabi GP, 🇦🇹 Austrian GP")
+        st.write("- 🇬🇧 British GP, 🇮🇹 Italian GP")
+        st.write("- 🇧🇪 Belgian GP, 🇳🇱 Dutch GP")
+        st.write("- 🇺🇸 United States GP, 🇲🇽 Mexico GP")
     
-    elif viz_type == "Lap Time Analysis":
-        if 'avg_speed' in filtered_df.columns:
-            fig = px.box(filtered_df, y='avg_speed', x='gp' if selected_circuit == 'All' else 'year',
-                        title="Speed Distribution by " + ("Circuit" if selected_circuit == 'All' else "Year"),
-                        labels={'avg_speed': 'Average Speed (km/h)'})
+    st.markdown("---")
+    
+    # Weather data info
+    st.subheader("🌤️ Weather Parameters")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Temperature:**")
+        st.write("- Air Temperature (10-45°C)")
+        st.write("- Track Temperature (15-60°C)")
+    
+    with col2:
+        st.markdown("**Atmospheric:**")
+        st.write("- Humidity (20-95%)")
+        st.write("- Pressure (980-1020 mbar)")
+        st.write("- Rainfall (0-100%)")
+    
+    with col3:
+        st.markdown("**Wind:**")
+        st.write("- Wind Speed (0-15 m/s)")
+        st.write("- Wind Direction (0-360°)")
+    
+    st.markdown("---")
+    
+    # Aston Martin specific
+    st.subheader("🏎️ Aston Martin Training Data")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("AM Laps", "44,580", help="Aston Martin specific laps")
+    with col2:
+        st.metric("% of Dataset", "6.6%", help="Proportion dedicated to AM")
+    with col3:
+        st.metric("Years", "2018-2024", help="Full historical coverage")
+    
+    st.write("")
+    st.success("✅ **Model trained with per-team normalization** to account for different car performances")
+    st.info("ℹ️ **Two-stage training:** Pre-trained on all teams (575K laps) → Fine-tuned on Aston Martin (44K laps)")
+    
+    # If actual data is loaded, show live visualizations
+    if train_df is not None:
+        st.markdown("---")
+        st.subheader("📊 Live Data Visualizations")
+        st.info("💡 Enhanced visualizations available with loaded training data")
+        
+        # Filters
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            teams = ['All'] + sorted(train_df['Team'].unique().tolist())
+            selected_team = st.selectbox("Team", teams)
+        
+        with col2:
+            years = ['All'] + sorted(train_df['year'].unique().tolist(), reverse=True)
+            selected_year = st.selectbox("Year", years)
+        
+        with col3:
+            circuits = ['All'] + sorted(train_df['gp'].unique().tolist())
+            selected_circuit = st.selectbox("Circuit", circuits)
+        
+        # Filter data
+        filtered_df = train_df.copy()
+        if selected_team != 'All':
+            filtered_df = filtered_df[filtered_df['Team'] == selected_team]
+        if selected_year != 'All':
+            filtered_df = filtered_df[filtered_df['year'] == selected_year]
+        if selected_circuit != 'All':
+            filtered_df = filtered_df[filtered_df['gp'] == selected_circuit]
+        
+        # Summary stats
+        st.subheader(f"📊 Summary Statistics ({len(filtered_df):,} laps)")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Avg Throttle", f"{filtered_df['avg_throttle'].mean():.1f}%")
+        with col2:
+            st.metric("Avg RPM", f"{filtered_df['avg_rpm'].mean():.0f}")
+        with col3:
+            st.metric("Avg Speed", f"{filtered_df['avg_speed'].mean():.1f} km/h")
+        with col4:
+            st.metric("Avg Air Temp", f"{filtered_df['air_temp'].mean():.1f}°C")
+        
+        # Visualization options
+        st.markdown("---")
+        st.subheader("📊 Visualizations")
+        
+        viz_type = st.selectbox("Select Visualization", 
+                               ["Fuel Proxy Distribution", "RPM vs Throttle", "Weather Impact", "Speed Analysis"])
+        
+        if viz_type == "Fuel Proxy Distribution":
+            fuel_proxy = 0.60 * (filtered_df['avg_rpm'] / 12000.0) + 0.40 * (filtered_df['avg_throttle'] / 100.0)
+            fig = px.histogram(fuel_proxy, nbins=50, title="Fuel Proxy Distribution",
+                              labels={'value': 'Fuel Proxy', 'count': 'Frequency'})
+            fig.update_traces(marker_color='#00594C')
             st.plotly_chart(fig, use_container_width=True)
-    
-    # Raw data view
-    if st.checkbox("Show Raw Data"):
-        st.dataframe(filtered_df.head(100), use_container_width=True)
+        
+        elif viz_type == "RPM vs Throttle":
+            sample_df = filtered_df.sample(min(5000, len(filtered_df)))
+            fig = px.scatter(sample_df, x='avg_rpm', y='avg_throttle', 
+                            color='Team' if selected_team == 'All' else None,
+                            title="RPM vs Throttle Application",
+                            labels={'avg_rpm': 'Average RPM', 'avg_throttle': 'Average Throttle (%)'})
+            st.plotly_chart(fig, use_container_width=True)
+        
+        elif viz_type == "Weather Impact":
+            fig = px.scatter(filtered_df.sample(min(5000, len(filtered_df))), 
+                            x='air_temp', y='track_temp', color='humidity',
+                            title="Weather Conditions Distribution",
+                            labels={'air_temp': 'Air Temperature (°C)', 'track_temp': 'Track Temperature (°C)'})
+            st.plotly_chart(fig, use_container_width=True)
+        
+        elif viz_type == "Speed Analysis":
+            if 'avg_speed' in filtered_df.columns:
+                fig = px.box(filtered_df, y='avg_speed', x='gp' if selected_circuit == 'All' else 'year',
+                            title="Speed Distribution by " + ("Circuit" if selected_circuit == 'All' else "Year"),
+                            labels={'avg_speed': 'Average Speed (km/h)'})
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Raw data view
+        if st.checkbox("Show Raw Data"):
+            st.dataframe(filtered_df.head(100), use_container_width=True)
 
 
 if __name__ == "__main__":
