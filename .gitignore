@@ -11,3 +11,5 @@ data/test_highfuel_expanded.csv
 outputs/*.pkl
 outputs/*.joblib
 
+*.pyc
+__pycache__/
