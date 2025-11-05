@@ -1,7 +1,13 @@
 
+
 # FastF1 cache
 cache/
+
+# Large datasets (kept locally, too big for GitHub)
+data/train_highfuel_expanded.csv
+data/test_highfuel_expanded.csv
 
 # Large artifacts (kept locally)
 outputs/*.pkl
 outputs/*.joblib
+
