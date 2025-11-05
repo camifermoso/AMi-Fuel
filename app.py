@@ -276,11 +276,20 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
         for idx, row in top_3.iterrows():
             param_name = row['Parameter']
             reduction = row['Reduction']
-            with st.expander(f"#{top_3.index.get_loc(idx)+1}: {param_name} ({reduction})", expanded=(top_3.index.get_loc(idx)==0)):
-                st.write(f"**Reduction:** {row['Reduction']}")
-                st.write(f"**Fuel Saved:** {row['Fuel Saved (kg/race)']}")
-                st.write(f"**Time Cost:** {row['Time Cost/Race']}")
-                st.write(f"**Time Cost/Lap:** {row['Time Cost/Lap']}")
+            rank = top_3.index.get_loc(idx) + 1
+            is_open = "open" if rank == 1 else ""
+            # Custom HTML collapsible
+            st.markdown(f"""
+            <details class="custom-details" {is_open}>
+                <summary>#{rank}: {param_name} ({reduction})</summary>
+                <div class="custom-details-content">
+                    <p><strong>Reduction:</strong> {row['Reduction']}</p>
+                    <p><strong>Fuel Saved:</strong> {row['Fuel Saved (kg/race)']}</p>
+                    <p><strong>Time Cost:</strong> {row['Time Cost/Race']}</p>
+                    <p><strong>Time Cost/Lap:</strong> {row['Time Cost/Lap']}</p>
+                </div>
+            </details>
+            """, unsafe_allow_html=True)
     
     with col2:
         st.subheader("🏁 Best Race Scenarios")
@@ -341,23 +350,39 @@ def show_recommendations(params_df):
         params_df = params_df.sort_values('sort_key')
     
     # Display recommendations
+    first_item = True
     for idx, row in params_df.iterrows():
         param_name = row['Parameter']
         reduction = row['Reduction']
-        with st.expander(f"**{param_name}** - {reduction}", expanded=(idx==0)):
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("Fuel Saved", row['Fuel Saved (kg/race)'])
-            with col2:
-                st.metric("Time Cost", row['Time Cost/Race'])
-            with col3:
-                st.metric("Time Cost/Lap", row['Time Cost/Lap'])
-            
-            st.markdown("---")
-            st.markdown("**Analysis:**")
-            st.write(f"Reducing {row['Parameter']} by {row['Reduction']} can save {row['Fuel Saved (kg/race)']} "
-                    f"per race, but will cost approximately {row['Time Cost/Race']} in total race time.")
+        is_open = "open" if first_item else ""
+        first_item = False
+        
+        # Custom HTML collapsible with ALL content inside
+        st.markdown(f"""
+        <details class="custom-details" {is_open}>
+            <summary><strong>{param_name}</strong> - {reduction}</summary>
+            <div class="custom-details-content">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                        <div style="font-size: 0.8rem; color: #666;">Fuel Saved</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">{row['Fuel Saved (kg/race)']}</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                        <div style="font-size: 0.8rem; color: #666;">Time Cost</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">{row['Time Cost/Race']}</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                        <div style="font-size: 0.8rem; color: #666;">Time Cost/Lap</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">{row['Time Cost/Lap']}</div>
+                    </div>
+                </div>
+                <hr style="margin: 1rem 0;">
+                <p><strong>Analysis:</strong></p>
+                <p>Reducing {row['Parameter']} by {row['Reduction']} can save {row['Fuel Saved (kg/race)']} 
+                per race, but will cost approximately {row['Time Cost/Race']} in total race time.</p>
+            </div>
+        </details>
+        """, unsafe_allow_html=True)
 
 
 def show_race_scenarios(scenarios_df):
@@ -374,45 +399,64 @@ def show_race_scenarios(scenarios_df):
         # Create tabs for different scenario types
         scenario_types = scenarios_df['Scenario'].unique()
         
-        for scenario in scenario_types:
+        for idx, scenario in enumerate(scenario_types):
             scenario_name = str(scenario)
-            # Custom HTML collapsible header
+            scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
+            is_open = "open" if idx == 0 else ""
+            
+            # Build the content HTML
+            positions = scenario_data.get('Positions Lost', 'N/A')
+            strategy = scenario_data['Strategy']
+            when_to_use = scenario_data.get('When to Use', 'N/A')
+            
+            # Determine usage tips
+            usage_tips = ""
+            if 'MINIMAL' in scenario or 'Minimal' in scenario:
+                usage_tips = """
+                <p>✅ Use when: Managing fuel to finish comfortably</p>
+                <p>❌ Avoid when: Need to push hard for positions</p>
+                """
+            elif 'BALANCED' in scenario or 'Balanced' in scenario:
+                usage_tips = """
+                <p>✅ Use when: Normal race conditions, consistent pace needed</p>
+                <p>❌ Avoid when: Extreme weather conditions</p>
+                """
+            elif 'CRITICAL' in scenario or 'Critical' in scenario:
+                usage_tips = """
+                <p>✅ Use when: Must save fuel to finish race</p>
+                <p>❌ Avoid when: Fighting for positions</p>
+                """
+            elif 'TIRE' in scenario or 'Tire' in scenario:
+                usage_tips = """
+                <p>✅ Use when: Extending stint, managing both resources</p>
+                <p>❌ Avoid when: Need maximum pace</p>
+                """
+            
+            # Custom HTML collapsible with ALL content inside
             st.markdown(f"""
-            <details class="custom-details" open>
+            <details class="custom-details" {is_open}>
                 <summary>📋 {scenario_name}</summary>
+                <div class="custom-details-content">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; color: #666;">💧 Fuel Saved</div>
+                            <div style="font-size: 1.5rem; font-weight: bold;">{scenario_data['Fuel Saved (Race)']}</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; color: #666;">⏱️ Time Cost</div>
+                            <div style="font-size: 1.5rem; font-weight: bold;">{scenario_data['Time Cost (Race)']}</div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; color: #666;">📍 Est. Positions Lost</div>
+                            <div style="font-size: 1.5rem; font-weight: bold;">{positions}</div>
+                        </div>
+                    </div>
+                    <p><strong>Strategy:</strong> {strategy}</p>
+                    <p><strong>When to Use:</strong> {when_to_use}</p>
+                    {usage_tips}
+                </div>
             </details>
             """, unsafe_allow_html=True)
-            
-            # Content in regular Streamlit (inside a container for better styling)
-            with st.container():
-                scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("💧 Fuel Saved", scenario_data['Fuel Saved (Race)'])
-                with col2:
-                    st.metric("⏱️ Time Cost", scenario_data['Time Cost (Race)'])
-                with col3:
-                    positions = scenario_data.get('Positions Lost', 'N/A')
-                    st.metric("📍 Est. Positions Lost", positions)
-                    
-                st.markdown("**Strategy:**")
-                st.write(scenario_data['Strategy'])
-                
-                st.markdown("**When to Use:**")
-                st.write(scenario_data.get('When to Use', 'N/A'))
-                if 'Aggressive' in scenario:
-                    st.write("✅ Use when: Fighting for podium, need to push hard")
-                    st.write("❌ Avoid when: Conserving engine life, risk of DNF")
-                elif 'Balanced' in scenario:
-                    st.write("✅ Use when: Normal race conditions, consistent pace needed")
-                    st.write("❌ Avoid when: Extreme weather conditions")
-                elif 'Conservative' in scenario:
-                    st.write("✅ Use when: Protecting position, hot weather, saving components")
-                    st.write("❌ Avoid when: Need to make up positions")
-                
-                st.markdown("---")
 
 
 def show_circuit_analysis(circuits_df, train_df):
