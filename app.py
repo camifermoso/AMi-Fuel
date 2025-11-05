@@ -97,21 +97,53 @@ st.markdown("""
         border-radius: 5px;
     }
     
-    /* Fix Material Icons rendering in expanders */
-    .streamlit-expanderHeader {
-        font-family: 'Darkmode Off CC Regular', -apple-system, sans-serif !important;
+    /* Custom collapsible section styling */
+    .custom-details {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        background: white;
+        overflow: hidden;
     }
     
-    /* Ensure expander content displays properly */
-    [data-testid="stExpander"] summary {
-        display: flex !important;
-        align-items: center !important;
+    .custom-details summary {
+        cursor: pointer;
+        padding: 1rem;
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 1rem;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        transition: background 0.2s;
+        user-select: none;
     }
     
-    /* Ensure SVG arrow is visible */
-    [data-testid="stExpander"] svg {
-        display: inline-block !important;
-        flex-shrink: 0 !important;
+    .custom-details summary:hover {
+        background: #e9ecef;
+    }
+    
+    .custom-details summary::-webkit-details-marker {
+        display: none;
+    }
+    
+    .custom-details summary::before {
+        content: '▶';
+        display: inline-block;
+        margin-right: 0.5rem;
+        transition: transform 0.2s;
+        color: #00594C;
+        font-size: 0.8rem;
+    }
+    
+    .custom-details[open] summary::before {
+        transform: rotate(90deg);
+    }
+    
+    .custom-details-content {
+        padding: 1rem;
+        border-top: 1px solid #e0e0e0;
+        background: white;
     }
 
 </style>
@@ -258,12 +290,17 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
             
             for idx, row in top_scenarios.iterrows():
                 scenario_name = str(row['Scenario'])
-                # Use checkbox instead of expander to avoid icon issues
-                if st.checkbox(f"📋 {scenario_name}", key=f"scenario_{idx}"):
-                    st.write(f"**Fuel Saved:** {row['Fuel Saved (Race)']}")
-                    st.write(f"**Time Cost:** {row['Time Cost (Race)']}")
-                    st.write(f"**Strategy:** {row['Strategy']}")
-                    st.markdown("---")
+                # Custom HTML collapsible
+                st.markdown(f"""
+                <details class="custom-details">
+                    <summary>📋 {scenario_name}</summary>
+                    <div class="custom-details-content">
+                        <p><strong>Fuel Saved:</strong> {row['Fuel Saved (Race)']}</p>
+                        <p><strong>Time Cost:</strong> {row['Time Cost (Race)']}</p>
+                        <p><strong>Strategy:</strong> {row['Strategy']}</p>
+                    </div>
+                </details>
+                """, unsafe_allow_html=True)
     
     # Visualization
     st.markdown("---")
@@ -339,20 +376,27 @@ def show_race_scenarios(scenarios_df):
         
         for scenario in scenario_types:
             scenario_name = str(scenario)
-            # Use header + container instead of expander
-            st.subheader(f"📋 {scenario_name}")
-            scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
+            # Custom HTML collapsible header
+            st.markdown(f"""
+            <details class="custom-details" open>
+                <summary>📋 {scenario_name}</summary>
+            </details>
+            """, unsafe_allow_html=True)
             
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("💧 Fuel Saved", scenario_data['Fuel Saved (Race)'])
-            with col2:
-                st.metric("⏱️ Time Cost", scenario_data['Time Cost (Race)'])
-            with col3:
-                positions = scenario_data.get('Positions Lost', 'N/A')
-                st.metric("📍 Est. Positions Lost", positions)
+            # Content in regular Streamlit (inside a container for better styling)
+            with st.container():
+                scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
                 
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("💧 Fuel Saved", scenario_data['Fuel Saved (Race)'])
+                with col2:
+                    st.metric("⏱️ Time Cost", scenario_data['Time Cost (Race)'])
+                with col3:
+                    positions = scenario_data.get('Positions Lost', 'N/A')
+                    st.metric("📍 Est. Positions Lost", positions)
+                    
                 st.markdown("**Strategy:**")
                 st.write(scenario_data['Strategy'])
                 
@@ -367,6 +411,8 @@ def show_race_scenarios(scenarios_df):
                 elif 'Conservative' in scenario:
                     st.write("✅ Use when: Protecting position, hot weather, saving components")
                     st.write("❌ Avoid when: Need to make up positions")
+                
+                st.markdown("---")
 
 
 def show_circuit_analysis(circuits_df, train_df):
