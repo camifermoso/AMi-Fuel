@@ -119,6 +119,26 @@ st.markdown("""
         display: inline-block !important;
         flex-shrink: 0 !important;
     }
+    
+    /* CRITICAL FIX: Hide the Material Icons text that appears as fallback */
+    /* Target any element containing "keyboard_arrow" text */
+    [data-testid="stExpander"] summary span[class*="material"] {
+        display: none !important;
+    }
+    
+    /* Alternative: hide all text nodes that are not in paragraph tags */
+    [data-testid="stExpander"] summary > *:not(p):not(svg) {
+        font-size: 0 !important;
+        line-height: 0 !important;
+        color: transparent !important;
+    }
+    
+    /* Ensure paragraph text remains visible */
+    [data-testid="stExpander"] summary p {
+        font-size: 1rem !important;
+        line-height: normal !important;
+        color: inherit !important;
+    }
 
 </style>
 """, unsafe_allow_html=True)
