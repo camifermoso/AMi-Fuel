@@ -108,36 +108,27 @@ st.markdown("""
         align-items: center !important;
     }
     
-    /* Make sure the text content is visible */
-    [data-testid="stExpander"] summary p {
-        display: inline-block !important;
-        margin: 0 !important;
-    }
-    
     /* Ensure SVG arrow is visible */
     [data-testid="stExpander"] svg {
         display: inline-block !important;
         flex-shrink: 0 !important;
     }
     
-    /* CRITICAL FIX: Hide the Material Icons text that appears as fallback */
-    /* Target any element containing "keyboard_arrow" text */
-    [data-testid="stExpander"] summary span[class*="material"] {
-        display: none !important;
-    }
-    
-    /* Alternative: hide all text nodes that are not in paragraph tags */
-    [data-testid="stExpander"] summary > *:not(p):not(svg) {
-        font-size: 0 !important;
-        line-height: 0 !important;
-        color: transparent !important;
-    }
-    
-    /* Ensure paragraph text remains visible */
+    /* Make sure the text content is visible and styled properly */
     [data-testid="stExpander"] summary p {
+        display: inline-block !important;
+        margin: 0 !important;
         font-size: 1rem !important;
-        line-height: normal !important;
-        color: inherit !important;
+        line-height: 1.5 !important;
+        color: rgb(49, 51, 63) !important;
+        font-weight: normal !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Hide only spans with material icons class */
+    [data-testid="stExpander"] summary span[class*="material-icons"] {
+        display: none !important;
     }
 
 </style>
