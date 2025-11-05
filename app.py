@@ -113,65 +113,8 @@ st.markdown("""
         display: inline-block !important;
         flex-shrink: 0 !important;
     }
-    
-    /* Make sure the text content is visible and styled properly */
-    [data-testid="stExpander"] summary p {
-        display: inline-block !important;
-        margin: 0 !important;
-        font-size: 1rem !important;
-        line-height: 1.5 !important;
-        color: rgb(49, 51, 63) !important;
-        font-weight: normal !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-    
-    /* Hide only spans with material icons class */
-    [data-testid="stExpander"] summary span[class*="material-icons"] {
-        display: none !important;
-    }
 
 </style>
-
-<script>
-    // Remove "keyboard_arrow_right" text from expanders
-    function cleanExpanderIcons() {
-        const expanders = document.querySelectorAll('[data-testid="stExpander"] summary');
-        expanders.forEach(expander => {
-            // Get all text nodes
-            const walker = document.createTreeWalker(
-                expander,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            
-            let node;
-            const nodesToRemove = [];
-            while(node = walker.nextNode()) {
-                if (node.textContent.includes('keyboard_arrow')) {
-                    nodesToRemove.push(node);
-                }
-            }
-            
-            nodesToRemove.forEach(n => n.remove());
-        });
-    }
-    
-    // Run on page load and after Streamlit updates
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', cleanExpanderIcons);
-    } else {
-        cleanExpanderIcons();
-    }
-    
-    // Re-run after Streamlit renders (use MutationObserver)
-    const observer = new MutationObserver(cleanExpanderIcons);
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Clean up after 5 seconds to prevent infinite observation
-    setTimeout(() => observer.disconnect(), 5000);
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -315,10 +258,12 @@ def show_overview(params_df, scenarios_df, circuits_df, train_df):
             
             for idx, row in top_scenarios.iterrows():
                 scenario_name = str(row['Scenario'])
-                with st.expander(f"📋 {scenario_name}", expanded=False):
+                # Use checkbox instead of expander to avoid icon issues
+                if st.checkbox(f"📋 {scenario_name}", key=f"scenario_{idx}"):
                     st.write(f"**Fuel Saved:** {row['Fuel Saved (Race)']}")
                     st.write(f"**Time Cost:** {row['Time Cost (Race)']}")
                     st.write(f"**Strategy:** {row['Strategy']}")
+                    st.markdown("---")
     
     # Visualization
     st.markdown("---")
@@ -394,18 +339,19 @@ def show_race_scenarios(scenarios_df):
         
         for scenario in scenario_types:
             scenario_name = str(scenario)
-            with st.expander(f"📋 {scenario_name}", expanded=True):
-                scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("💧 Fuel Saved", scenario_data['Fuel Saved (Race)'])
-                with col2:
-                    st.metric("⏱️ Time Cost", scenario_data['Time Cost (Race)'])
-                with col3:
-                    positions = scenario_data.get('Positions Lost', 'N/A')
-                    st.metric("📍 Est. Positions Lost", positions)
+            # Use header + container instead of expander
+            st.subheader(f"📋 {scenario_name}")
+            scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("💧 Fuel Saved", scenario_data['Fuel Saved (Race)'])
+            with col2:
+                st.metric("⏱️ Time Cost", scenario_data['Time Cost (Race)'])
+            with col3:
+                positions = scenario_data.get('Positions Lost', 'N/A')
+                st.metric("📍 Est. Positions Lost", positions)
                 
                 st.markdown("**Strategy:**")
                 st.write(scenario_data['Strategy'])
