@@ -97,13 +97,18 @@ st.markdown("""
         border-radius: 5px;
     }
     
-    /* Custom collapsible section styling */
+    /* Custom collapsible section styling with smooth animations */
     .custom-details {
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         margin-bottom: 1rem;
         background: white;
         overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .custom-details:hover {
+        box-shadow: 0 2px 8px rgba(0, 89, 76, 0.1);
     }
     
     .custom-details summary {
@@ -115,7 +120,7 @@ st.markdown("""
         list-style: none;
         display: flex;
         align-items: center;
-        transition: background 0.2s;
+        transition: all 0.3s ease;
         user-select: none;
     }
     
@@ -131,7 +136,7 @@ st.markdown("""
         content: '▶';
         display: inline-block;
         margin-right: 0.5rem;
-        transition: transform 0.2s;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         color: #00594C;
         font-size: 0.8rem;
     }
@@ -141,9 +146,33 @@ st.markdown("""
     }
     
     .custom-details-content {
-        padding: 1rem;
+        padding: 0 1rem;
         border-top: 1px solid #e0e0e0;
         background: white;
+        animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        max-height: 2000px;
+        overflow: hidden;
+    }
+    
+    /* Smooth slide down animation */
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+    }
+    
+    /* Apply padding with transition */
+    .custom-details[open] .custom-details-content {
+        padding: 1rem;
     }
 
 </style>
