@@ -293,100 +293,321 @@ def main():
 
 
 def show_overview(params_df, scenarios_df, circuits_df, train_df):
-    """Display overview dashboard."""
+    """Display overview dashboard with dynamic interactive elements."""
     st.header("System Overview")
     
-    # Key metrics
+    # Prepare data
+    params_df = params_df.copy()
+    params_df['Fuel Saved'] = params_df['Fuel Saved (kg/race)'].str.replace(' kg', '').astype(float)
+    params_df['Time Cost'] = params_df['Time Cost/Race'].str.replace('s', '').astype(float)
+    
+    # Top-level KPI metrics
     col1, col2, col3, col4 = st.columns(4)
     
+    total_fuel_saved = params_df['Fuel Saved'].sum()
+    avg_time_cost = params_df['Time Cost'].mean()
+    best_strategy = params_df.nlargest(1, 'Fuel Saved').iloc[0]
+    efficiency_ratio = total_fuel_saved / avg_time_cost if avg_time_cost > 0 else 0
+    
     with col1:
-        total_fuel_saved = params_df['Fuel Saved (kg/race)'].str.replace(' kg', '').astype(float).sum()
-        st.metric("Total Fuel Savings Potential", f"{total_fuel_saved:.1f} kg/race", help="Sum of all optimization strategies")
+        st.metric(
+            "Total Fuel Savings", 
+            f"{total_fuel_saved:.1f} kg", 
+            delta=f"{len(params_df)} strategies",
+            help="Sum of all optimization opportunities per race"
+        )
     
     with col2:
-        avg_time_cost = params_df['Time Cost/Race'].str.replace('s', '').astype(float).mean()
-        st.metric("Avg Time Cost", f"{avg_time_cost:.2f} sec/race", help="Average time penalty per strategy")
+        st.metric(
+            "Avg Time Cost", 
+            f"{avg_time_cost:.2f}s", 
+            delta=f"-{avg_time_cost*0.1:.2f}s target",
+            delta_color="inverse",
+            help="Average time penalty across all strategies"
+        )
     
     with col3:
-        if train_df is not None:
-            am_laps = len(train_df[train_df['Team'] == 'Aston Martin'])
-            st.metric("AM Training Laps", f"{am_laps:,}", help="Aston Martin laps in training data")
-        else:
-            st.metric("AM Training Laps", "44,580", help="Total AM laps used in training")
+        st.metric(
+            "Best Single Strategy",
+            f"{best_strategy['Fuel Saved']:.1f} kg",
+            delta=best_strategy['Parameter'][:20],
+            help=f"Top performer: {best_strategy['Parameter']}"
+        )
     
     with col4:
-        num_circuits = len(circuits_df) if circuits_df is not None else 0
-        st.metric("Circuits Analyzed", num_circuits, help="Number of circuits with specific strategies")
+        st.metric(
+            "Efficiency Ratio",
+            f"{efficiency_ratio:.2f}",
+            delta="kg saved/sec",
+            help="Fuel saved per second of time cost"
+        )
     
     st.markdown("---")
     
-    # Quick insights
-    col1, col2 = st.columns(2)
+    # Interactive Strategy Selector
+    st.subheader("🎯 Strategy Comparison Tool")
+    
+    col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("🎯 Top 3 Fuel Saving Strategies")
-        params_copy = params_df.copy()
-        params_copy['fuel_saved_num'] = params_copy['Fuel Saved (kg/race)'].str.replace(' kg', '').astype(float)
-        top_3 = params_copy.nlargest(3, 'fuel_saved_num')
-        
-        for idx, row in top_3.iterrows():
-            param_name = row['Parameter']
-            reduction = row['Reduction']
-            rank = top_3.index.get_loc(idx) + 1
-            is_open = "open" if rank == 1 else ""
-            # Custom HTML collapsible
-            st.markdown(f"""
-            <details class="custom-details" {is_open}>
-                <summary>#{rank}: {param_name} ({reduction})</summary>
-                <div class="custom-details-content">
-                    <p><strong>Reduction:</strong> {row['Reduction']}</p>
-                    <p><strong>Fuel Saved:</strong> {row['Fuel Saved (kg/race)']}</p>
-                    <p><strong>Time Cost:</strong> {row['Time Cost/Race']}</p>
-                    <p><strong>Time Cost/Lap:</strong> {row['Time Cost/Lap']}</p>
-                </div>
-            </details>
-            """, unsafe_allow_html=True)
+        selected_strategies = st.multiselect(
+            "Select strategies to compare (max 5)",
+            options=params_df['Parameter'].tolist(),
+            default=params_df.nlargest(3, 'Fuel Saved')['Parameter'].tolist()[:3],
+            max_selections=5
+        )
     
     with col2:
-        st.subheader("🏁 Best Race Scenarios")
-        if scenarios_df is not None:
-            scenarios_df['Fuel Saved'] = scenarios_df['Fuel Saved (Race)'].str.replace(' kg', '').astype(float)
-            top_scenarios = scenarios_df.nlargest(3, 'Fuel Saved')
+        chart_type = st.radio(
+            "Chart Type",
+            ["Bar Chart", "Scatter Plot", "Radar Chart"],
+            horizontal=True
+        )
+    
+    if selected_strategies:
+        filtered_df = params_df[params_df['Parameter'].isin(selected_strategies)]
+        
+        # Dynamic chart based on selection
+        if chart_type == "Bar Chart":
+            fig = go.Figure()
             
-            for idx, row in top_scenarios.iterrows():
-                scenario_name = str(row['Scenario'])
-                # Custom HTML collapsible
-                st.markdown(f"""
-                <details class="custom-details">
-                    <summary>📋 {scenario_name}</summary>
-                    <div class="custom-details-content">
-                        <p><strong>Fuel Saved:</strong> {row['Fuel Saved (Race)']}</p>
-                        <p><strong>Time Cost:</strong> {row['Time Cost (Race)']}</p>
-                        <p><strong>Strategy:</strong> {row['Strategy']}</p>
-                    </div>
-                </details>
-                """, unsafe_allow_html=True)
+            # Fuel Saved bars
+            fig.add_trace(go.Bar(
+                name='Fuel Saved (kg)',
+                x=filtered_df['Parameter'],
+                y=filtered_df['Fuel Saved'],
+                marker_color='#cedc00',
+                text=filtered_df['Fuel Saved'].round(2),
+                textposition='outside',
+                yaxis='y'
+            ))
+            
+            # Time Cost bars (on secondary axis)
+            fig.add_trace(go.Bar(
+                name='Time Cost (s)',
+                x=filtered_df['Parameter'],
+                y=filtered_df['Time Cost'],
+                marker_color='#ff6b6b',
+                text=filtered_df['Time Cost'].round(2),
+                textposition='outside',
+                yaxis='y2',
+                opacity=0.7
+            ))
+            
+            fig.update_layout(
+                title="Fuel Savings vs Time Cost Comparison",
+                xaxis=dict(title="Strategy", tickangle=-45),
+                yaxis=dict(title="Fuel Saved (kg)", side='left', color='#cedc00'),
+                yaxis2=dict(title="Time Cost (s)", side='right', overlaying='y', color='#ff6b6b'),
+                height=500,
+                hovermode='x unified',
+                plot_bgcolor='#003933',
+                paper_bgcolor='#004b45',
+                font=dict(color='#ffffff', family='Inter'),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        elif chart_type == "Scatter Plot":
+            fig = px.scatter(
+                filtered_df,
+                x='Time Cost',
+                y='Fuel Saved',
+                text='Parameter',
+                size='Fuel Saved',
+                color='Fuel Saved',
+                color_continuous_scale=['#004b45', '#cedc00'],
+                title='Efficiency Frontier: Fuel Savings vs Time Cost',
+                labels={'Time Cost': 'Time Cost (seconds/race)', 'Fuel Saved': 'Fuel Saved (kg/race)'},
+                height=500
+            )
+            fig.update_traces(
+                textposition='top center',
+                marker=dict(line=dict(width=2, color='#ffffff'))
+            )
+            fig.update_layout(
+                plot_bgcolor='#003933',
+                paper_bgcolor='#004b45',
+                font=dict(color='#ffffff', family='Inter'),
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        else:  # Radar Chart
+            # Normalize values for radar chart
+            max_fuel = filtered_df['Fuel Saved'].max()
+            max_time = filtered_df['Time Cost'].max()
+            
+            fig = go.Figure()
+            
+            for idx, row in filtered_df.iterrows():
+                fig.add_trace(go.Scatterpolar(
+                    r=[
+                        (row['Fuel Saved'] / max_fuel) * 100,
+                        (1 - row['Time Cost'] / max_time) * 100,  # Invert time cost (lower is better)
+                        (row['Fuel Saved'] / row['Time Cost'] if row['Time Cost'] > 0 else 0) * 10
+                    ],
+                    theta=['Fuel Savings', 'Time Efficiency', 'Overall Efficiency'],
+                    fill='toself',
+                    name=row['Parameter'][:30]
+                ))
+            
+            fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 100], color='#cedc00'),
+                    bgcolor='#003933'
+                ),
+                title="Multi-Dimensional Strategy Comparison",
+                height=500,
+                paper_bgcolor='#004b45',
+                font=dict(color='#ffffff', family='Inter'),
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.2)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Comparison table
+        st.markdown("### 📊 Detailed Comparison")
+        comparison_data = filtered_df[['Parameter', 'Reduction', 'Fuel Saved', 'Time Cost']].copy()
+        comparison_data['Efficiency'] = (comparison_data['Fuel Saved'] / comparison_data['Time Cost']).round(3)
+        comparison_data = comparison_data.sort_values('Fuel Saved', ascending=False)
+        
+        # Style the dataframe
+        st.dataframe(
+            comparison_data,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Parameter": st.column_config.TextColumn("Strategy", width="medium"),
+                "Reduction": st.column_config.TextColumn("Reduction", width="small"),
+                "Fuel Saved": st.column_config.NumberColumn("Fuel Saved (kg)", format="%.2f"),
+                "Time Cost": st.column_config.NumberColumn("Time Cost (s)", format="%.2f"),
+                "Efficiency": st.column_config.NumberColumn("Efficiency Ratio", format="%.3f", help="kg saved per second")
+            }
+        )
     
-    # Visualization
     st.markdown("---")
-    st.subheader("📊 Fuel Savings vs Time Cost")
     
-    plot_df = params_df.copy()
-    plot_df['Fuel Saved'] = plot_df['Fuel Saved (kg/race)'].str.replace(' kg', '').astype(float)
-    plot_df['Time Cost'] = plot_df['Time Cost/Race'].str.replace('s', '').astype(float)
+    # Performance insights cards
+    st.subheader("🏆 Top Performers")
     
-    fig = px.scatter(
-        plot_df,
-        x='Time Cost',
-        y='Fuel Saved',
-        text='Parameter',
-        title='Fuel Savings vs Time Cost Trade-off',
-        labels={'Time Cost': 'Time Cost (seconds/race)', 'Fuel Saved': 'Fuel Saved (kg/race)'},
-        height=500
-    )
-    fig.update_traces(textposition='top center', marker=dict(size=12, color='#00594C'))
-    fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        top_saver = params_df.nlargest(1, 'Fuel Saved').iloc[0]
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #004b45 0%, #003933 100%); padding: 1.5rem; border-radius: 12px; border: 2px solid #cedc00; box-shadow: 0 4px 12px rgba(206,220,0,0.3);">
+            <div style="font-size: 0.9rem; color: #cedc00; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">🥇 Most Fuel Saved</div>
+            <div style="font-size: 1.8rem; font-weight: bold; color: #cedc00; margin-bottom: 0.5rem;">{top_saver['Fuel Saved']:.2f} kg</div>
+            <div style="font-size: 0.85rem; color: #ffffff; margin-bottom: 0.25rem;"><strong>{top_saver['Parameter']}</strong></div>
+            <div style="font-size: 0.75rem; color: #cedc00;">Reduction: {top_saver['Reduction']}</div>
+            <div style="font-size: 0.75rem; color: #ff6b6b; margin-top: 0.5rem;">⏱️ Cost: {top_saver['Time Cost']:.2f}s</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        top_efficient = params_df.copy()
+        top_efficient['efficiency'] = top_efficient['Fuel Saved'] / top_efficient['Time Cost']
+        top_efficient = top_efficient.nlargest(1, 'efficiency').iloc[0]
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #004b45 0%, #003933 100%); padding: 1.5rem; border-radius: 12px; border: 2px solid #cedc00; box-shadow: 0 4px 12px rgba(206,220,0,0.3);">
+            <div style="font-size: 0.9rem; color: #cedc00; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">⚡ Most Efficient</div>
+            <div style="font-size: 1.8rem; font-weight: bold; color: #cedc00; margin-bottom: 0.5rem;">{top_efficient['efficiency']:.2f} ratio</div>
+            <div style="font-size: 0.85rem; color: #ffffff; margin-bottom: 0.25rem;"><strong>{top_efficient['Parameter']}</strong></div>
+            <div style="font-size: 0.75rem; color: #cedc00;">{top_efficient['Fuel Saved']:.2f} kg saved</div>
+            <div style="font-size: 0.75rem; color: #66ff66; margin-top: 0.5rem;">✅ Only {top_efficient['Time Cost']:.2f}s cost</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        low_cost = params_df.nsmallest(1, 'Time Cost').iloc[0]
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #004b45 0%, #003933 100%); padding: 1.5rem; border-radius: 12px; border: 2px solid #cedc00; box-shadow: 0 4px 12px rgba(206,220,0,0.3);">
+            <div style="font-size: 0.9rem; color: #cedc00; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">🚀 Lowest Time Cost</div>
+            <div style="font-size: 1.8rem; font-weight: bold; color: #66ff66; margin-bottom: 0.5rem;">{low_cost['Time Cost']:.2f}s</div>
+            <div style="font-size: 0.85rem; color: #ffffff; margin-bottom: 0.25rem;"><strong>{low_cost['Parameter']}</strong></div>
+            <div style="font-size: 0.75rem; color: #cedc00;">Saves: {low_cost['Fuel Saved']:.2f} kg</div>
+            <div style="font-size: 0.75rem; color: #cedc00; margin-top: 0.5rem;">📊 {low_cost['Reduction']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # All strategies overview with filtering
+    st.subheader("📋 All Strategies Overview")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        min_fuel = st.slider("Min Fuel Savings (kg)", 0.0, float(params_df['Fuel Saved'].max()), 0.0, 0.5)
+    
+    with col2:
+        max_time = st.slider("Max Time Cost (s)", 0.0, float(params_df['Time Cost'].max()), float(params_df['Time Cost'].max()), 0.5)
+    
+    with col3:
+        sort_option = st.selectbox("Sort By", ["Fuel Saved ↓", "Time Cost ↑", "Efficiency ↓"])
+    
+    # Apply filters
+    filtered_all = params_df[
+        (params_df['Fuel Saved'] >= min_fuel) & 
+        (params_df['Time Cost'] <= max_time)
+    ].copy()
+    
+    filtered_all['Efficiency'] = filtered_all['Fuel Saved'] / filtered_all['Time Cost']
+    
+    # Sort
+    if sort_option == "Fuel Saved ↓":
+        filtered_all = filtered_all.sort_values('Fuel Saved', ascending=False)
+    elif sort_option == "Time Cost ↑":
+        filtered_all = filtered_all.sort_values('Time Cost')
+    else:
+        filtered_all = filtered_all.sort_values('Efficiency', ascending=False)
+    
+    st.info(f"📊 Showing {len(filtered_all)} of {len(params_df)} strategies")
+    
+    # Display as cards
+    for idx, row in filtered_all.iterrows():
+        efficiency = row['Efficiency']
+        
+        # Color coding based on efficiency
+        if efficiency >= 2.0:
+            border_color = "#66ff66"  # Green for high efficiency
+            badge = "🌟 EXCELLENT"
+        elif efficiency >= 1.0:
+            border_color = "#cedc00"  # Yellow for good efficiency
+            badge = "✅ GOOD"
+        else:
+            border_color = "#ff9966"  # Orange for lower efficiency
+            badge = "⚠️ MODERATE"
+        
+        st.markdown(f"""
+        <div style="background: #003933; padding: 1rem; border-radius: 8px; border-left: 4px solid {border_color}; margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div style="font-size: 1rem; font-weight: bold; color: #ffffff;">{row['Parameter']}</div>
+                <div style="font-size: 0.75rem; color: {border_color}; font-weight: 600;">{badge}</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+                <div>
+                    <div style="font-size: 0.7rem; color: #cedc00; text-transform: uppercase;">Reduction</div>
+                    <div style="font-size: 0.9rem; color: #ffffff; font-weight: 600;">{row['Reduction']}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.7rem; color: #cedc00; text-transform: uppercase;">Fuel Saved</div>
+                    <div style="font-size: 0.9rem; color: #66ff66; font-weight: 600;">{row['Fuel Saved']:.2f} kg</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.7rem; color: #cedc00; text-transform: uppercase;">Time Cost</div>
+                    <div style="font-size: 0.9rem; color: #ff6b6b; font-weight: 600;">{row['Time Cost']:.2f}s</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.7rem; color: #cedc00; text-transform: uppercase;">Efficiency</div>
+                    <div style="font-size: 0.9rem; color: {border_color}; font-weight: 600;">{efficiency:.2f}</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def show_recommendations(params_df):
