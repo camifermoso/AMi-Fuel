@@ -34,8 +34,8 @@ st.markdown("""
     
     /* Hide Streamlit header bar */
     header[data-testid="stHeader"] {
-        background-color: #004b45 !important;
-        border-bottom: 2px solid #cedc00;
+        display: none !important;
+        visibility: hidden !important;
     }
     
     /* Main content area */
@@ -444,14 +444,6 @@ def main():
     # Sidebar - Race Weekend Context
     st.sidebar.title("🏁 Race Control")
     
-    # Quick session selector
-    st.sidebar.markdown("### 📡 Current Session")
-    session_type = st.sidebar.selectbox(
-        "Session Type",
-        ["Practice 1", "Practice 2", "Practice 3", "Qualifying", "Sprint", "Race"],
-        index=5  # Default to Race
-    )
-    
     # Race conditions
     st.sidebar.markdown("### 🌡️ Live Conditions")
     col1, col2 = st.sidebar.columns(2)
@@ -480,9 +472,9 @@ def main():
     
     # Main content based on page selection - Race Engineer Tools
     if page == "🎯 Race Strategy":
-        show_race_strategy(params_df, scenarios_df, circuits_df, train_df, session_type, air_temp, track_temp, rainfall)
+        show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall)
     elif page == "⚡ Quick Decisions":
-        show_quick_decisions(params_df, session_type, air_temp, track_temp)
+        show_quick_decisions(params_df, air_temp, track_temp)
     elif page == "🏁 Scenario Planning":
         show_scenario_planning(scenarios_df, params_df)
     elif page == "🗺️ Circuit Intel":
@@ -493,13 +485,11 @@ def main():
         show_performance_data(train_df)
 
 
-def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, session_type, air_temp, track_temp, rainfall):
+def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall):
     """Race Strategy Dashboard - Main decision support for race engineers."""
     
-    # Session-specific header
-    session_emoji = {"Practice 1": "🔧", "Practice 2": "🔧", "Practice 3": "🔧", 
-                     "Qualifying": "⏱️", "Sprint": "🏃", "Race": "🏁"}
-    st.header(f"{session_emoji.get(session_type, '🏁')} {session_type} - Fuel Strategy")
+    # Race header
+    st.header("🏁 Race - Fuel Strategy")
     
     # Alert banner for conditions
     if rainfall:
@@ -637,7 +627,7 @@ def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, session_t
             ))
             
             fig.update_layout(
-                title=f"{session_type} Setup Analysis: Fuel vs Time Impact",
+                title="Race Setup Analysis: Fuel vs Time Impact",
                 xaxis=dict(title="Setup Parameter", tickangle=-45),
                 yaxis=dict(title="Fuel Saved (kg/race)", side='left', color='#cedc00'),
                 yaxis2=dict(title="Time Cost (s/race)", side='right', overlaying='y', color='#ff6b6b'),
@@ -864,7 +854,7 @@ def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, session_t
         """, unsafe_allow_html=True)
 
 
-def show_quick_decisions(params_df, session_type, air_temp, track_temp):
+def show_quick_decisions(params_df, air_temp, track_temp):
     """Quick Decisions - Fast actionable recommendations for race engineers."""
     st.header("⚡ Quick Decision Support")
     st.caption("Instant setup recommendations based on current conditions")
@@ -900,15 +890,15 @@ def show_quick_decisions(params_df, session_type, air_temp, track_temp):
         recommendations = params_df.nlargest(3, 'Fuel Saved')
         metric_focus = "Maximum Fuel Reduction"
     
-    st.markdown(f"### 🎯 Top 3 Actions for {session_type}")
+    st.markdown(f"### 🎯 Top 3 Actions for Race")
     st.markdown(f"*Optimized for: {metric_focus}*")
     
     # Display top 3 as action cards
     for idx, (_, row) in enumerate(recommendations.iterrows(), 1):
-        # Calculate race impact
-        laps = 55 if "Race" in session_type else (17 if "Sprint" in session_type else 1)
-        total_fuel_impact = row['Fuel Saved'] * (laps / 55)  # Scale to session length
-        total_time_impact = row['Time Cost'] * (laps / 55)
+        # Calculate race impact (55 laps)
+        laps = 55
+        total_fuel_impact = row['Fuel Saved']
+        total_time_impact = row['Time Cost']
         weight_advantage = total_fuel_impact * 0.03  # 0.03s per kg
         
         # Priority badge
@@ -939,7 +929,7 @@ def show_quick_decisions(params_df, session_type, air_temp, track_temp):
             </div>
             
             <div style="background: rgba(206,220,0,0.1); padding: 1rem; border-radius: 8px; border-left: 3px solid #cedc00; margin-bottom: 1rem;">
-                <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; margin-bottom: 0.5rem;">📊 {session_type.upper()} IMPACT ({laps} laps)</div>
+                <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; margin-bottom: 0.5rem;">📊 RACE IMPACT ({laps} laps)</div>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
                     <div>
                         <div style="font-size: 0.65rem; color: #cedc00; text-transform: uppercase;">Fuel Saved</div>
