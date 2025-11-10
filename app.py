@@ -22,36 +22,34 @@ st.set_page_config(
 # Custom CSS with custom fonts
 st.markdown("""
 <style>
-    /* Import Google Fonts - Bebas Neue for headers, Inter for body */
-    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+    /* Import Google Fonts - Stack Sans Notch for headers, Inter for body */
+    @import url('https://fonts.googleapis.com/css2?family=Stack+Sans+Notch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Apply Bebas Neue to headers (similar bold, condensed style to Domus Titling) */
+    /* Apply Stack Sans Notch to headers (modern, notched geometric style) */
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Bebas Neue', 'Arial Black', sans-serif !important;
-        font-weight: 400 !important;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: 1.5px;
     }
     
     .main-header {
-        font-family: 'Bebas Neue', 'Arial Black', sans-serif !important;
+        font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
         font-size: 3rem;
-        font-weight: 400;
+        font-weight: 700;
         color: #00594C;
         text-align: center;
         margin-bottom: 0.5rem;
-        letter-spacing: 4px;
-        text-transform: uppercase;
+        letter-spacing: 3px;
     }
     
     .sub-header {
-        font-family: 'Bebas Neue', 'Arial Black', sans-serif !important;
+        font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
         font-size: 1.2rem;
+        font-weight: 500;
         color: #666;
         text-align: center;
         margin-bottom: 2rem;
-        letter-spacing: 3px;
-        text-transform: uppercase;
+        letter-spacing: 2px;
     }
     
     /* Streamlit specific header selectors */
@@ -63,9 +61,9 @@ st.markdown("""
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
     section[data-testid="stSidebar"] h3 {
-        font-family: 'Bebas Neue', 'Arial Black', sans-serif !important;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
+        font-weight: 600;
+        letter-spacing: 1.5px;
     }
     
     /* Apply Inter to body text and content (clean, modern sans-serif) */
