@@ -25,18 +25,39 @@ st.markdown("""
     /* Import Google Fonts - Stack Sans Notch for headers, Inter for body */
     @import url('https://fonts.googleapis.com/css2?family=Stack+Sans+Notch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
     
+    /* Dark green background for main app */
+    .stApp {
+        background-color: #004b45;
+    }
+    
+    /* Main content area */
+    .main .block-container {
+        background-color: #004b45;
+        padding-top: 2rem;
+    }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background-color: #003933 !important;
+    }
+    
+    section[data-testid="stSidebar"] > div {
+        background-color: #003933;
+    }
+    
     /* Apply Stack Sans Notch to headers (modern, notched geometric style) */
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
         font-weight: 600 !important;
         letter-spacing: 1.5px;
+        color: #cedc00 !important;
     }
     
     .main-header {
         font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
         font-size: 3rem;
         font-weight: 700;
-        color: #00594C;
+        color: #cedc00;
         text-align: center;
         margin-bottom: 0.5rem;
         letter-spacing: 3px;
@@ -46,7 +67,7 @@ st.markdown("""
         font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
         font-size: 1.2rem;
         font-weight: 500;
-        color: #666;
+        color: #ffffff;
         text-align: center;
         margin-bottom: 2rem;
         letter-spacing: 2px;
@@ -64,50 +85,63 @@ st.markdown("""
         font-family: 'Stack Sans Notch', 'Arial Black', sans-serif !important;
         font-weight: 600;
         letter-spacing: 1.5px;
+        color: #cedc00 !important;
     }
     
     /* Apply Inter to body text and content (clean, modern sans-serif) */
     p, div, span, label, li, td, th, button {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: #ffffff !important;
     }
     
     /* Keep Inter for metrics values for better readability */
     [data-testid="stMetricValue"] {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
         font-weight: 600;
+        color: #cedc00 !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #ffffff !important;
     }
     
     .metric-card {
-        background-color: #f0f2f6;
+        background-color: #ffffff;
         padding: 1rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #00594C;
+        border-left: 4px solid #004b45;
+        box-shadow: 0 1px 3px rgba(0, 75, 69, 0.1);
     }
     .stMetric {
-        background-color: #f8f9fa;
+        background-color: #003933;
         padding: 10px;
         border-radius: 5px;
+        border: 2px solid #cedc00;
     }
     
     /* Custom collapsible section styling with smooth animations */
     .custom-details {
-        border: 1px solid #e0e0e0;
+        border: 2px solid #cedc00;
         border-radius: 8px;
         margin-bottom: 1rem;
-        background: white;
+        background: #003933;
         overflow: hidden;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(206, 220, 0, 0.15);
     }
     
     .custom-details:hover {
-        box-shadow: 0 2px 8px rgba(0, 89, 76, 0.1);
+        box-shadow: 0 6px 20px rgba(206, 220, 0, 0.3);
+        border-color: #cedc00;
+        transform: translateY(-2px);
     }
     
     .custom-details summary {
         cursor: pointer;
         padding: 1rem;
-        background: #f8f9fa;
-        font-weight: 600;
+        background: linear-gradient(135deg, #cedc00 0%, #b8c400 100%);
+        color: #004b45;
+        font-weight: 700;
         font-size: 1rem;
         list-style: none;
         display: flex;
@@ -117,7 +151,7 @@ st.markdown("""
     }
     
     .custom-details summary:hover {
-        background: #e9ecef;
+        background: linear-gradient(135deg, #e0f000 0%, #cedc00 100%);
     }
     
     .custom-details summary::-webkit-details-marker {
@@ -129,7 +163,7 @@ st.markdown("""
         display: inline-block;
         margin-right: 0.5rem;
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        color: #00594C;
+        color: #004b45;
         font-size: 0.8rem;
     }
     
@@ -139,8 +173,9 @@ st.markdown("""
     
     .custom-details-content {
         padding: 0 1rem;
-        border-top: 1px solid #e0e0e0;
-        background: white;
+        border-top: 2px solid #cedc00;
+        background: #003933;
+        color: #ffffff;
         animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         max-height: 2000px;
         overflow: hidden;
@@ -384,20 +419,20 @@ def show_recommendations(params_df):
             <summary><strong>{param_name}</strong> - {reduction}</summary>
             <div class="custom-details-content">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                        <div style="font-size: 0.8rem; color: #666;">Fuel Saved</div>
-                        <div style="font-size: 1.5rem; font-weight: bold;">{row['Fuel Saved (kg/race)']}</div>
+                    <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
+                        <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">Fuel Saved</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{row['Fuel Saved (kg/race)']}</div>
                     </div>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                        <div style="font-size: 0.8rem; color: #666;">Time Cost</div>
-                        <div style="font-size: 1.5rem; font-weight: bold;">{row['Time Cost/Race']}</div>
+                    <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
+                        <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">Time Cost</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{row['Time Cost/Race']}</div>
                     </div>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                        <div style="font-size: 0.8rem; color: #666;">Time Cost/Lap</div>
-                        <div style="font-size: 1.5rem; font-weight: bold;">{row['Time Cost/Lap']}</div>
+                    <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
+                        <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">Time Cost/Lap</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{row['Time Cost/Lap']}</div>
                     </div>
                 </div>
-                <hr style="margin: 1rem 0;">
+                <hr style="margin: 1rem 0; border: none; border-top: 2px solid #cedc00;">
                 <p><strong>Analysis:</strong></p>
                 <p>Reducing {row['Parameter']} by {row['Reduction']} can save {row['Fuel Saved (kg/race)']} 
                 per race, but will cost approximately {row['Time Cost/Race']} in total race time.</p>
@@ -459,17 +494,17 @@ def show_race_scenarios(scenarios_df):
                 <summary>📋 {scenario_name}</summary>
                 <div class="custom-details-content">
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <div style="font-size: 0.8rem; color: #666;">💧 Fuel Saved</div>
-                            <div style="font-size: 1.5rem; font-weight: bold;">{scenario_data['Fuel Saved (Race)']}</div>
+                        <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
+                            <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">💧 Fuel Saved</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{scenario_data['Fuel Saved (Race)']}</div>
                         </div>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <div style="font-size: 0.8rem; color: #666;">⏱️ Time Cost</div>
-                            <div style="font-size: 1.5rem; font-weight: bold;">{scenario_data['Time Cost (Race)']}</div>
+                        <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
+                            <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">⏱️ Time Cost</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{scenario_data['Time Cost (Race)']}</div>
                         </div>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <div style="font-size: 0.8rem; color: #666;">📍 Est. Positions Lost</div>
-                            <div style="font-size: 1.5rem; font-weight: bold;">{positions}</div>
+                        <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
+                            <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">📍 Est. Positions Lost</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{positions}</div>
                         </div>
                     </div>
                     <p><strong>Strategy:</strong> {strategy}</p>
