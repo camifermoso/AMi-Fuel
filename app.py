@@ -34,8 +34,8 @@ st.markdown("""
     
     /* Hide Streamlit header bar */
     header[data-testid="stHeader"] {
-        background-color: #004b45 !important;
-        border-bottom: 2px solid #cedc00;
+        display: none !important;
+        visibility: hidden !important;
     }
     
     /* Main content area */
