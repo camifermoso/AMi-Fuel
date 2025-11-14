@@ -274,6 +274,31 @@ st.markdown("""
         color: #cedc00 !important;
     }
     
+    /* Fix dropdown menu text visibility - more specific selectors */
+    [role="listbox"] {
+        background-color: #003933 !important;
+    }
+    
+    [role="option"] {
+        background-color: #003933 !important;
+        color: #ffffff !important;
+    }
+    
+    [role="option"]:hover {
+        background-color: #004b45 !important;
+        color: #cedc00 !important;
+    }
+    
+    /* Dropdown selected value */
+    .stSelectbox [data-baseweb="select"] span {
+        color: #ffffff !important;
+    }
+    
+    /* All dropdown option text */
+    [data-baseweb="menu"] * {
+        color: #ffffff !important;
+    }
+    
     /* Radio buttons */
     .stRadio label {
         color: #ffffff !important;
@@ -380,6 +405,39 @@ st.markdown("""
         background-color: #b8c400 !important;
         box-shadow: 0 4px 12px rgba(206,220,0,0.4) !important;
     }
+    
+    /* Ensure button text is always dark */
+    .stButton button * {
+        color: #004b45 !important;
+    }
+    
+    /* Primary button styling */
+    .stButton button[kind="primary"] {
+        background-color: #cedc00 !important;
+        color: #004b45 !important;
+    }
+    
+    .stButton button[kind="primary"] * {
+        color: #004b45 !important;
+    }
+    
+    /* Download button styling */
+    .stDownloadButton button {
+        background-color: #cedc00 !important;
+        color: #004b45 !important;
+        border: none !important;
+        font-weight: 600 !important;
+    }
+    
+    .stDownloadButton button:hover {
+        background-color: #b8c400 !important;
+        box-shadow: 0 4px 12px rgba(206,220,0,0.4) !important;
+    }
+    
+    /* Ensure download button text is always dark */
+    .stDownloadButton button * {
+        color: #004b45 !important;
+    }
 
 </style>
 """, unsafe_allow_html=True)
@@ -430,7 +488,7 @@ def load_training_data():
 
 def main():
     # Header - Race Engineer Focused
-    st.markdown('<div class="main-header">🏎️ AMi-Fuel Race Engineer System</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"> AMi-Fuel Race Engineer System</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Real-Time Fuel Strategy Decision Support</div>', unsafe_allow_html=True)
     
     # Load data
@@ -444,22 +502,16 @@ def main():
     # Sidebar - Race Weekend Context
     st.sidebar.title("🏁 Race Control")
     
-    # Race conditions
-    st.sidebar.markdown("### 🌡️ Live Conditions")
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        air_temp = st.number_input("Air Temp (°C)", 15.0, 45.0, 25.0, 1.0, key="air_temp")
-    with col2:
-        track_temp = st.number_input("Track Temp (°C)", 20.0, 60.0, 35.0, 1.0, key="track_temp")
-    
-    rainfall = st.sidebar.checkbox("Rainfall Expected", value=False)
+    # Set default weather values (hidden from UI)
+    air_temp = 25.0
+    track_temp = 35.0
+    rainfall = False
     
     # Navigation
-    st.sidebar.markdown("---")
     st.sidebar.title("📋 Navigation")
     page = st.sidebar.radio(
         "Select Tool",
-        ["🎯 Race Strategy", "⚡ Quick Decisions", "🏁 Scenario Planning", "🗺️ Circuit Intel", "🔮 Live Calculator", "📊 Performance Data"],
+        ["🎯 Race Strategy", "⚡ Quick Decisions", "🏁 Scenario Planning", "🗺️ Circuit Intel", "🔮 Live Calculator", "📊 Performance Data", "🔍 Race Analysis"],
         help="Choose the tool you need for the current phase of the race weekend"
     )
     
@@ -481,8 +533,10 @@ def main():
         show_circuit_intel(circuits_df, train_df)
     elif page == "🔮 Live Calculator":
         show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfall)
-    elif page == "� Performance Data":
+    elif page == "📊 Performance Data":
         show_performance_data(train_df)
+    elif page == "🔍 Race Analysis":
+        show_race_analysis(model, scaler)
 
 
 def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall):
@@ -1459,6 +1513,600 @@ def show_performance_data(train_df):
         # Raw data view
         if st.checkbox("Show Raw Data"):
             st.dataframe(filtered_df.head(100), use_container_width=True)
+
+
+def show_race_analysis(model, scaler):
+    """Race Analysis - Deep dive into past Aston Martin races using FastF1 data."""
+    st.header("Past Race Analysis")
+    st.caption("Analyze historical Aston Martin races with real telemetry data from FastF1")
+    
+    # Import FastF1
+    try:
+        import fastf1
+        fastf1.Cache.enable_cache('cache')
+    except ImportError:
+        st.error("❌ FastF1 not installed. Run: `pip install fastf1`")
+        return
+    
+    # Aston Martin driver history
+    # 2021: Sebastian Vettel (VET), Lance Stroll (STR)
+    # 2022: Sebastian Vettel (VET), Lance Stroll (STR)
+    # 2023: Fernando Alonso (ALO), Lance Stroll (STR)
+    # 2024: Fernando Alonso (ALO), Lance Stroll (STR)
+    
+    AM_DRIVERS = {
+        2021: {"Lance Stroll": "STR", "Sebastian Vettel": "VET"},
+        2022: {"Lance Stroll": "STR", "Sebastian Vettel": "VET"},
+        2023: {"Lance Stroll": "STR", "Fernando Alonso": "ALO"},
+        2024: {"Lance Stroll": "STR", "Fernando Alonso": "ALO"}
+    }
+    
+    # Selection controls
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        year = st.selectbox(
+            "📅 Season",
+            [2024, 2023, 2022, 2021],
+            help="Aston Martin F1 seasons"
+        )
+    
+    # Get race list for selected year
+    try:
+        schedule = fastf1.get_event_schedule(year)
+        # Filter for actual races (not testing)
+        race_events = schedule[schedule['EventFormat'].isin(['conventional', 'sprint', 'sprint_shootout'])]
+        race_names = race_events['EventName'].tolist()
+    except Exception as e:
+        st.error(f"Error loading schedule: {e}")
+        return
+    
+    with col2:
+        # Get drivers for selected year
+        available_drivers = list(AM_DRIVERS[year].keys())
+        driver = st.selectbox(
+            "🏎️ Driver",
+            available_drivers,
+            help=f"Aston Martin drivers in {year}"
+        )
+        driver_code = AM_DRIVERS[year][driver]
+    
+    with col3:
+        race_name = st.selectbox(
+            "🏁 Grand Prix",
+            race_names,
+            help=f"Races in {year} season"
+        )
+    
+    # Load race button
+    if st.button("🔄 Load Race Data", type="primary", use_container_width=True):
+        with st.spinner(f"Loading {year} {race_name} for {driver}..."):
+            try:
+                # Load race session
+                session = fastf1.get_session(year, race_name, 'R')
+                session.load()
+                
+                # Get driver laps
+                driver_laps = session.laps.pick_driver(driver_code)
+                
+                if len(driver_laps) == 0:
+                    st.warning(f"⚠️ No lap data found for {driver} in {year} {race_name}")
+                    return
+                
+                # Pre-load telemetry for all laps
+                st.info("Loading telemetry data for all laps...")
+                lap_telemetry = {}
+                telemetry_errors = []
+                
+                for idx, lap in driver_laps.iterrows():
+                    try:
+                        tel = lap.get_telemetry()
+                        
+                        # Debug: Log what we got
+                        if tel is None:
+                            telemetry_errors.append(f"Lap {lap['LapNumber']}: get_telemetry() returned None")
+                            lap_telemetry[lap['LapNumber']] = None
+                        elif len(tel) == 0:
+                            telemetry_errors.append(f"Lap {lap['LapNumber']}: Empty telemetry DataFrame")
+                            lap_telemetry[lap['LapNumber']] = None
+                        else:
+                            # Log available columns
+                            if lap['LapNumber'] == 1:
+                                st.write(f"Debug - Lap 1 telemetry columns: {list(tel.columns)}")
+                                st.write(f"Debug - Lap 1 telemetry shape: {tel.shape}")
+                            
+                            # Store aggregated telemetry data
+                            lap_telemetry[lap['LapNumber']] = {
+                                'rpm': tel['RPM'].mean() if 'RPM' in tel.columns else None,
+                                'throttle': tel['Throttle'].mean() if 'Throttle' in tel.columns else None,
+                                'speed': tel['Speed'].mean() if 'Speed' in tel.columns else None,
+                                'gear': tel['nGear'].mean() if 'nGear' in tel.columns else None,
+                                'has_full_data': all([
+                                    'RPM' in tel.columns and not tel['RPM'].isna().all(),
+                                    'Throttle' in tel.columns and not tel['Throttle'].isna().all(),
+                                    'Speed' in tel.columns and not tel['Speed'].isna().all(),
+                                    'nGear' in tel.columns and not tel['nGear'].isna().all()
+                                ])
+                            }
+                    except Exception as e:
+                        telemetry_errors.append(f"Lap {lap['LapNumber']}: {str(e)}")
+                        lap_telemetry[lap['LapNumber']] = None
+                
+                # Show debug info
+                if telemetry_errors and len(telemetry_errors) <= 5:
+                    st.warning(f"Telemetry issues: {'; '.join(telemetry_errors[:5])}")
+                
+                # Store in session state
+                st.session_state.race_data = {
+                    'session': session,
+                    'laps': driver_laps,
+                    'telemetry': lap_telemetry,
+                    'year': year,
+                    'race': race_name,
+                    'driver': driver,
+                    'driver_code': driver_code
+                }
+                
+                full_tel_count = sum(1 for t in lap_telemetry.values() if t and t.get('has_full_data'))
+                st.success(f"✅ Loaded {len(driver_laps)} laps for {driver} ({full_tel_count} with full telemetry)")
+                
+            except Exception as e:
+                st.error(f"❌ Error loading data: {e}")
+                return
+    
+    # Display analysis if data is loaded
+    if 'race_data' not in st.session_state:
+        st.info("👆 Select a race and click 'Load Race Data' to begin analysis")
+        return
+    
+    race_data = st.session_state.race_data
+    laps = race_data['laps']
+    session = race_data['session']
+    
+    st.markdown("---")
+    st.subheader(f"📊 {race_data['year']} {race_data['race']} - {race_data['driver']}")
+    
+    # Overview metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Laps", len(laps))
+    with col2:
+        fastest_lap = laps['LapTime'].min()
+        if pd.notna(fastest_lap):
+            # Convert timedelta to string and extract MM:SS.mmm
+            lap_str = str(fastest_lap)
+            if 'days' in lap_str:
+                lap_str = lap_str.split()[-1]  # Remove days if present
+            # Remove hours if present (format: HH:MM:SS.mmm -> MM:SS.mmm)
+            time_parts = lap_str.split(':')
+            if len(time_parts) == 3:
+                lap_str = f"{time_parts[1]}:{time_parts[2]}"
+            st.metric("Fastest Lap", lap_str)
+        else:
+            st.metric("Fastest Lap", "N/A")
+    with col3:
+        avg_speed = laps['SpeedST'].mean() if 'SpeedST' in laps.columns else 0
+        st.metric("Avg Speed", f"{avg_speed:.1f} km/h")
+    with col4:
+        compounds = laps['Compound'].unique()
+        st.metric("Tire Compounds", ", ".join([c for c in compounds if pd.notna(c)]))
+    
+    # Tab layout for different analyses
+    tab1, tab2, tab3, tab4 = st.tabs(["📋 Lap-by-Lap", "📈 Telemetry Charts", "🗺️ Track Map", "⛽ Fuel Estimation"])
+    
+    with tab1:
+        st.markdown("### Lap-by-Lap Breakdown")
+        
+        # Prepare lap table
+        lap_table = pd.DataFrame({
+            'Lap': laps['LapNumber'],
+            'Lap Time': laps['LapTime'].apply(lambda x: str(x).split()[-1] if pd.notna(x) else 'N/A'),
+            'Compound': laps['Compound'],
+            'Stint': laps['Stint'],
+            'Speed ST (km/h)': laps['SpeedST'].round(1) if 'SpeedST' in laps.columns else 'N/A',
+            'Speed I1': laps['SpeedI1'].round(1) if 'SpeedI1' in laps.columns else 'N/A',
+            'Speed I2': laps['SpeedI2'].round(1) if 'SpeedI2' in laps.columns else 'N/A',
+            'Speed FL': laps['SpeedFL'].round(1) if 'SpeedFL' in laps.columns else 'N/A',
+            'Track Status': laps['TrackStatus']
+        })
+        
+        st.dataframe(lap_table, use_container_width=True, height=400)
+        
+        # Download button
+        csv = lap_table.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Lap Data",
+            data=csv,
+            file_name=f"{race_data['driver_code']}_{race_data['year']}_{race_data['race']}_laps.csv",
+            mime="text/csv"
+        )
+    
+    with tab2:
+        st.markdown("### Telemetry Analysis")
+        
+        # Select a lap for detailed telemetry
+        lap_numbers = laps['LapNumber'].tolist()
+        selected_lap = st.selectbox("Select Lap for Detailed Telemetry", lap_numbers)
+        
+        if selected_lap:
+            try:
+                lap = laps[laps['LapNumber'] == selected_lap].iloc[0]
+                telemetry = lap.get_telemetry()
+                
+                if len(telemetry) > 0:
+                    # Speed trace
+                    fig_speed = go.Figure()
+                    fig_speed.add_trace(go.Scatter(
+                        x=telemetry['Distance'],
+                        y=telemetry['Speed'],
+                        mode='lines',
+                        name='Speed',
+                        line=dict(color='#cedc00', width=2)
+                    ))
+                    fig_speed.update_layout(
+                        title=f"Speed Trace - Lap {selected_lap}",
+                        xaxis_title="Distance (m)",
+                        yaxis_title="Speed (km/h)",
+                        plot_bgcolor='#003933',
+                        paper_bgcolor='#004b45',
+                        font=dict(color='#ffffff')
+                    )
+                    st.plotly_chart(fig_speed, use_container_width=True)
+                    
+                    # Throttle & RPM
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        fig_throttle = go.Figure()
+                        fig_throttle.add_trace(go.Scatter(
+                            x=telemetry['Distance'],
+                            y=telemetry['Throttle'],
+                            mode='lines',
+                            name='Throttle',
+                            line=dict(color='#66ff66', width=2)
+                        ))
+                        fig_throttle.update_layout(
+                            title="Throttle Application",
+                            xaxis_title="Distance (m)",
+                            yaxis_title="Throttle (%)",
+                            plot_bgcolor='#003933',
+                            paper_bgcolor='#004b45',
+                            font=dict(color='#ffffff')
+                        )
+                        st.plotly_chart(fig_throttle, use_container_width=True)
+                    
+                    with col2:
+                        fig_rpm = go.Figure()
+                        fig_rpm.add_trace(go.Scatter(
+                            x=telemetry['Distance'],
+                            y=telemetry['RPM'],
+                            mode='lines',
+                            name='RPM',
+                            line=dict(color='#ff6b6b', width=2)
+                        ))
+                        fig_rpm.update_layout(
+                            title="Engine RPM",
+                            xaxis_title="Distance (m)",
+                            yaxis_title="RPM",
+                            plot_bgcolor='#003933',
+                            paper_bgcolor='#004b45',
+                            font=dict(color='#ffffff')
+                        )
+                        st.plotly_chart(fig_rpm, use_container_width=True)
+                    
+                    # DRS zones
+                    if 'DRS' in telemetry.columns:
+                        fig_drs = go.Figure()
+                        fig_drs.add_trace(go.Scatter(
+                            x=telemetry['Distance'],
+                            y=telemetry['DRS'],
+                            mode='lines',
+                            fill='tozeroy',
+                            name='DRS',
+                            line=dict(color='#cedc00', width=0)
+                        ))
+                        fig_drs.update_layout(
+                            title="DRS Activation Zones",
+                            xaxis_title="Distance (m)",
+                            yaxis_title="DRS Status",
+                            plot_bgcolor='#003933',
+                            paper_bgcolor='#004b45',
+                            font=dict(color='#ffffff')
+                        )
+                        st.plotly_chart(fig_drs, use_container_width=True)
+                    
+                else:
+                    st.warning("⚠️ No telemetry data available for this lap")
+                    
+            except Exception as e:
+                st.error(f"Error loading telemetry: {e}")
+    
+    with tab3:
+        st.markdown("### Track Map Visualization")
+        
+        try:
+            # Get fastest lap for track map
+            fastest = laps.pick_fastest()
+            telemetry = fastest.get_telemetry()
+            
+            if len(telemetry) > 0 and 'X' in telemetry.columns and 'Y' in telemetry.columns:
+                # Create track map colored by speed
+                fig = go.Figure()
+                
+                fig.add_trace(go.Scatter(
+                    x=telemetry['X'],
+                    y=telemetry['Y'],
+                    mode='markers',
+                    marker=dict(
+                        size=3,
+                        color=telemetry['Speed'],
+                        colorscale='RdYlGn',
+                        showscale=True,
+                        colorbar=dict(title="Speed<br>(km/h)")
+                    ),
+                    name='Track',
+                    hovertemplate='Speed: %{marker.color:.1f} km/h<extra></extra>'
+                ))
+                
+                fig.update_layout(
+                    title=f"Track Map - {race_data['race']} (Colored by Speed)",
+                    xaxis=dict(visible=False),
+                    yaxis=dict(visible=False, scaleanchor='x'),
+                    plot_bgcolor='#003933',
+                    paper_bgcolor='#004b45',
+                    font=dict(color='#ffffff'),
+                    height=600
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Track position data not available for this session")
+                
+        except Exception as e:
+            st.error(f"Error creating track map: {e}")
+    
+    with tab4:
+        st.markdown("### ⛽ Fuel Cost of Reality")
+        st.caption("Quantifying the fuel expense of how the driver actually drove")
+        
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #003933 0%, #004b45 100%); 
+                    padding: 1rem; border-radius: 8px; border-left: 4px solid #cedc00; 
+                    margin-bottom: 1rem;">
+            <p style="margin: 0; color: #ffffff; font-size: 0.9rem;">
+                <strong style="color: #cedc00;">What This Shows:</strong><br>
+                This isn't predicting the future - it's <strong>quantifying the past</strong>. 
+                By feeding actual driving data (RPM, throttle, speed, gear, tires) into our model, 
+                we estimate: <em>"Given how they drove, how expensive in fuel was each lap?"</em>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        try:
+            # Prepare features for each lap using pre-loaded telemetry
+            fuel_estimates = []
+            lap_telemetry = race_data.get('telemetry', {})
+            
+            for idx, lap in laps.iterrows():
+                # Initialize default values
+                avg_rpm = 11000
+                avg_throttle = 70
+                avg_speed = 200
+                avg_gear = 5
+                data_source = 'Default'
+                
+                # Get actual telemetry DataFrame for this lap (not pre-aggregated)
+                lap_num = lap['LapNumber']
+                fuel_pred = None
+                
+                # Try to get full telemetry and predict on all samples
+                try:
+                    tel = lap.get_telemetry()
+                    
+                    if tel is not None and len(tel) > 0:
+                        # Check if we have the required columns
+                        has_required = all(col in tel.columns for col in ['RPM', 'Throttle', 'Speed', 'nGear'])
+                        
+                        if has_required:
+                            # Prepare telemetry data for prediction
+                            X_tel = pd.DataFrame({
+                                'rpm': tel['RPM'],
+                                'throttle': tel['Throttle'],
+                                'speed': tel['Speed'],
+                                'gear': tel['nGear'],
+                                'ers': 2.5  # Default ERS mode for all samples
+                            })
+                            
+                            # Drop any rows with NaN values
+                            X_tel = X_tel.dropna()
+                            
+                            if len(X_tel) > 0:
+                                # Predict fuel for each telemetry sample
+                                fuel_samples = model.predict(X_tel)
+                                # Sum all samples to get total lap fuel
+                                fuel_pred = fuel_samples.sum()
+                                data_source = 'Telemetry'
+                except Exception as e:
+                    pass  # Fall back to estimation
+                
+                # If no telemetry-based prediction, fall back to estimates
+                if fuel_pred is None:
+                    # Try lap-level speed data
+                    if hasattr(lap, 'SpeedST') and pd.notna(lap.SpeedST):
+                        avg_speed = lap.SpeedST
+                    elif hasattr(lap, 'SpeedFL') and pd.notna(lap.SpeedFL):
+                        avg_speed = lap.SpeedFL
+                    elif hasattr(lap, 'SpeedI1') and pd.notna(lap.SpeedI1):
+                        avg_speed = lap.SpeedI1
+                    
+                    # Estimate with defaults - use lap time to vary the prediction
+                    try:
+                        lap_time_seconds = lap['LapTime'].total_seconds() if pd.notna(lap['LapTime']) else 90
+                        
+                        # Prepare model input - vary based on lap time
+                        X = pd.DataFrame({
+                            'rpm': [11000 + (90 - lap_time_seconds) * 50],  # Faster laps = higher RPM
+                            'throttle': [70 + (90 - lap_time_seconds) * 0.3],  # Faster laps = more throttle
+                            'speed': [avg_speed],
+                            'gear': [5],
+                            'ers': [2.5]
+                        })
+                        
+                        # Predict fuel
+                        fuel_pred = model.predict(X)[0]
+                        data_source = 'Estimated'
+                    except:
+                        fuel_pred = 0.65
+                        data_source = 'Default'
+                
+                # Add to results
+                fuel_estimates.append({
+                    'Lap': lap['LapNumber'],
+                    'Estimated Fuel': fuel_pred,
+                    'Compound': lap['Compound'],
+                    'Lap Time': str(lap['LapTime']).split()[-1] if pd.notna(lap['LapTime']) else 'N/A',
+                    'Data Source': data_source
+                })
+            
+            if fuel_estimates:
+                fuel_df = pd.DataFrame(fuel_estimates)
+                
+                # Show data quality info
+                telemetry_count = len(fuel_df[fuel_df['Data Source'] == 'Telemetry'])
+                estimated_count = len(fuel_df[fuel_df['Data Source'] == 'Estimated'])
+                default_count = len(fuel_df[fuel_df['Data Source'] == 'Default'])
+                
+                if telemetry_count < len(fuel_df):
+                    st.info(f"ℹ️ Data quality: {telemetry_count} laps with full telemetry, {estimated_count} with partial data, {default_count} estimated from defaults")
+                
+                # Summary metrics - Race Reality
+                st.markdown("#### 📊 Race Fuel Summary")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    total_fuel = fuel_df['Estimated Fuel'].sum()
+                    st.metric("Total Fuel Cost", f"{total_fuel:.2f}", 
+                             help="Cumulative fuel consumed based on actual driving")
+                with col2:
+                    avg_fuel = fuel_df['Estimated Fuel'].mean()
+                    st.metric("Avg per Lap", f"{avg_fuel:.3f}",
+                             help="Average fuel expense per lap")
+                with col3:
+                    max_fuel_lap = fuel_df.loc[fuel_df['Estimated Fuel'].idxmax(), 'Lap']
+                    max_fuel_val = fuel_df['Estimated Fuel'].max()
+                    st.metric("Most Expensive Lap", f"L{int(max_fuel_lap)}", 
+                             f"{max_fuel_val:.3f} units",
+                             help="Lap with highest fuel consumption")
+                with col4:
+                    min_fuel_lap = fuel_df.loc[fuel_df['Estimated Fuel'].idxmin(), 'Lap']
+                    min_fuel_val = fuel_df['Estimated Fuel'].min()
+                    st.metric("Most Efficient Lap", f"L{int(min_fuel_lap)}", 
+                             f"{min_fuel_val:.3f} units",
+                             help="Lap with lowest fuel consumption")
+                
+                # Fuel consumption chart with annotations
+                fig = go.Figure()
+                
+                # Add average line
+                fig.add_hline(y=avg_fuel, line_dash="dash", line_color="white", 
+                             opacity=0.5, annotation_text="Average",
+                             annotation_position="right")
+                
+                # Color by data source
+                for source in fuel_df['Data Source'].unique():
+                    source_data = fuel_df[fuel_df['Data Source'] == source]
+                    color = '#cedc00' if source == 'Telemetry' else ('#66ff66' if source == 'Estimated' else '#ff9866')
+                    fig.add_trace(go.Scatter(
+                        x=source_data['Lap'],
+                        y=source_data['Estimated Fuel'],
+                        mode='lines+markers',
+                        name=f'{source} Data',
+                        line=dict(color=color, width=2.5),
+                        marker=dict(size=7),
+                        hovertemplate='<b>Lap %{x}</b><br>' +
+                                     'Fuel: %{y:.4f} units<br>' +
+                                     '<extra></extra>'
+                    ))
+                
+                # Highlight max and min laps
+                fig.add_trace(go.Scatter(
+                    x=[max_fuel_lap],
+                    y=[max_fuel_val],
+                    mode='markers',
+                    name='Peak Consumption',
+                    marker=dict(size=15, color='#ff6b6b', symbol='star',
+                               line=dict(width=2, color='white')),
+                    showlegend=True
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=[min_fuel_lap],
+                    y=[min_fuel_val],
+                    mode='markers',
+                    name='Peak Efficiency',
+                    marker=dict(size=15, color='#66ff66', symbol='star',
+                               line=dict(width=2, color='white')),
+                    showlegend=True
+                ))
+                
+                fig.update_layout(
+                    title="Fuel Cost of Reality: Lap-by-Lap Analysis",
+                    xaxis_title="Lap Number",
+                    yaxis_title="Estimated Fuel Consumption (proxy units)",
+                    plot_bgcolor='#003933',
+                    paper_bgcolor='#004b45',
+                    font=dict(color='#ffffff', size=12),
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1
+                    ),
+                    hovermode='x unified'
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Stint analysis
+                st.markdown("#### 🔄 Stint Breakdown")
+                stint_analysis = fuel_df.groupby(fuel_df.index // 15).agg({
+                    'Estimated Fuel': ['sum', 'mean', 'count']
+                }).round(3)
+                stint_analysis.columns = ['Total Fuel', 'Avg/Lap', 'Laps']
+                stint_analysis.index = [f"Stint {i+1}" for i in stint_analysis.index]
+                
+                col1, col2 = st.columns([1, 2])
+                with col1:
+                    st.dataframe(stint_analysis, use_container_width=True)
+                with col2:
+                    fig_stint = go.Figure()
+                    fig_stint.add_trace(go.Bar(
+                        x=stint_analysis.index,
+                        y=stint_analysis['Total Fuel'],
+                        marker_color='#cedc00',
+                        text=stint_analysis['Total Fuel'],
+                        textposition='auto',
+                        hovertemplate='<b>%{x}</b><br>Total: %{y:.2f} units<extra></extra>'
+                    ))
+                    fig_stint.update_layout(
+                        title="Fuel Consumption by Stint",
+                        xaxis_title="Stint",
+                        yaxis_title="Total Fuel (units)",
+                        plot_bgcolor='#003933',
+                        paper_bgcolor='#004b45',
+                        font=dict(color='#ffffff')
+                    )
+                    st.plotly_chart(fig_stint, use_container_width=True)
+                
+                # Data table
+                st.dataframe(fuel_df, use_container_width=True)
+                
+            else:
+                st.warning("Unable to estimate fuel - no lap data available")
+                
+        except Exception as e:
+            st.error(f"Error estimating fuel: {e}")
 
 
 if __name__ == "__main__":
