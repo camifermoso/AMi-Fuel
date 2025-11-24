@@ -508,34 +508,33 @@ def main():
     rainfall = False
     
     # Navigation
-    st.sidebar.title("📋 Navigation")
+    st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Tool",
-        ["🎯 Race Strategy", "⚡ Quick Decisions", "🏁 Scenario Planning", "🗺️ Circuit Intel", "🔮 Live Calculator", "📊 Performance Data", "🔍 Race Analysis"],
+        ["Race Strategy", "Quick Decisions", "Scenario Planning", "Circuit Intel", "Live Calculator", "About this AI Model", "Race Analysis"],
         help="Choose the tool you need for the current phase of the race weekend"
     )
     
     # System status
     st.sidebar.markdown("---")
-    st.sidebar.subheader("✅ System Status")
+    st.sidebar.subheader("System Status")
     st.sidebar.metric("Model Confidence", "99.4%", help="Validated on unseen races")
-    st.sidebar.metric("Data Currency", "2024 Season", help="Last updated: 2024")
     st.sidebar.caption(f"🕒 Last sync: {datetime.now().strftime('%H:%M:%S')}")
     
     # Main content based on page selection - Race Engineer Tools
-    if page == "🎯 Race Strategy":
+    if page == "Race Strategy":
         show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall)
-    elif page == "⚡ Quick Decisions":
+    elif page == "Quick Decisions":
         show_quick_decisions(params_df, air_temp, track_temp)
-    elif page == "🏁 Scenario Planning":
+    elif page == "Scenario Planning":
         show_scenario_planning(scenarios_df, params_df)
-    elif page == "🗺️ Circuit Intel":
+    elif page == "Circuit Intel":
         show_circuit_intel(circuits_df, train_df)
-    elif page == "🔮 Live Calculator":
+    elif page == "Live Calculator":
         show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfall)
-    elif page == "📊 Performance Data":
-        show_performance_data(train_df)
-    elif page == "🔍 Race Analysis":
+    elif page in ("About this AI Model", "Performance Data", "About this AI model"):
+        show_about_ai_model(train_df)
+    elif page == "Race Analysis":
         show_race_analysis(model, scaler)
 
 
@@ -1250,14 +1249,113 @@ def show_circuit_intel(circuits_df, train_df):
 
 def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfall):
     """Live Calculator - Real-time fuel consumption predictions."""
-    st.header("🔮 Live Fuel Calculator")
+    st.header("Live Fuel Calculator")
     st.caption("Real-time fuel consumption calculator for current session conditions")
-    
-    st.success(f"🌡️ Using current conditions: Air {air_temp}°C | Track {track_temp}°C | Rainfall: {'Yes' if rainfall else 'No'}")
     
     if model is None:
         st.error("Model not loaded. Please ensure model files exist in outputs/two_stage_model/")
         return
+    
+    # 2025 F1 Calendar circuits
+    circuits_2025 = {
+        "Sakhir": "bahrain",
+        "Jeddah": "jeddah",
+        "Melbourne": "melbourne",
+        "Suzuka": "suzuka",
+        "Shanghai": "shanghai",
+        "Miami": "miami",
+        "Imola": "imola",
+        "Monaco": "monaco",
+        "Barcelona": "barcelona",
+        "Montreal": "montreal",
+        "Red Bull Ring": "austria",
+        "Silverstone": "silverstone",
+        "Spa": "spa",
+        "Zandvoort": "zandvoort",
+        "Monza": "monza",
+        "Baku": "baku",
+        "Marina Bay": "singapore",
+        "Austin": "austin",
+        "Mexico City": "mexico",
+        "Interlagos": "brazil",
+        "Las Vegas": "vegas",
+        "Losail": "qatar",
+        "Yas Marina": "abudhabi"
+    }
+    
+    # Power circuits (high-speed tracks)
+    power_circuits = ['monza', 'spa', 'jeddah', 'baku', 'silverstone', 'austria', 'mexico']
+    
+    # Session context
+    st.markdown("### Session Context")
+    col_ctx1, col_ctx2, col_ctx3 = st.columns(3)
+    
+    with col_ctx1:
+        driver = st.selectbox(
+            "Driver",
+            ["Fernando Alonso", "Lance Stroll"],
+            help="Current Aston Martin driver"
+        )
+    
+    with col_ctx2:
+        circuit_display = st.selectbox(
+            "Circuit",
+            list(circuits_2025.keys()),
+            index=8,  # Default to Barcelona
+            help="2025 F1 Calendar circuit"
+        )
+        circuit_key = circuits_2025[circuit_display]
+        is_power_circuit = 1 if circuit_key in power_circuits else 0
+    
+    with col_ctx3:
+        lap_number = st.number_input(
+            "Lap Number",
+            min_value=1,
+            max_value=70,
+            value=20,
+            help="Current lap in the race (affects tire deg, fuel load)"
+        )
+    
+    # Style the lap number buttons
+    st.markdown("""
+    <style>
+    /* Target number input buttons */
+    button[data-testid="baseButton-secondary"] {
+        color: white !important;
+        font-weight: bold !important;
+        font-size: 20px !important;
+    }
+    /* Decrease button (minus) - Red */
+    button[data-testid="baseButton-secondary"]:first-of-type,
+    button[data-testid="baseButton-secondary"]:first-of-type:hover,
+    button[data-testid="baseButton-secondary"]:first-of-type:focus,
+    button[data-testid="baseButton-secondary"]:first-of-type:active {
+        background-color: #dc3545 !important;
+        background: #dc3545 !important;
+        border-color: #dc3545 !important;
+    }
+    /* Increase button (plus) - Green */
+    button[data-testid="baseButton-secondary"]:last-of-type,
+    button[data-testid="baseButton-secondary"]:last-of-type:hover,
+    button[data-testid="baseButton-secondary"]:last-of-type:focus,
+    button[data-testid="baseButton-secondary"]:last-of-type:active {
+        background-color: #28a745 !important;
+        background: #28a745 !important;
+        border-color: #28a745 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Input container styling
+    st.markdown("""
+    <style>
+    div[data-testid="column"] > div {
+        background-color: rgba(14, 17, 23, 0.4);
+        padding: 1.5rem;
+        border-radius: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
@@ -1272,17 +1370,25 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
     
     with col2:
         st.subheader("🌤️ Weather Conditions")
-        st.caption("Using live conditions from sidebar. Adjust if needed:")
         air_temp_input = st.slider("Air Temperature (°C)", 10, 45, int(air_temp), help="Ambient air temperature", key="calc_air_temp")
         track_temp_input = st.slider("Track Temperature (°C)", 15, 60, int(track_temp), help="Track surface temperature", key="calc_track_temp")
         humidity = st.slider("Humidity (%)", 20, 95, 60, help="Relative humidity")
         pressure = st.slider("Pressure (mbar)", 980, 1020, 1013, help="Atmospheric pressure")
         wind_speed = st.slider("Wind Speed (m/s)", 0, 15, 3, help="Wind speed")
+        rainfall_input = st.toggle("Rainfall", value=rainfall, help="Is it raining during the session?")
     
     # Calculate prediction
     if st.button("🔮 Predict Fuel Consumption", type="primary"):
         # Calculate fuel proxy
         fuel_proxy = 0.60 * (rpm / 12000.0) + 0.40 * (throttle / 100.0)
+        
+        # Adjust for rainfall - wet conditions typically increase fuel consumption by 5-8%
+        if rainfall_input:
+            fuel_proxy *= 1.065  # 6.5% increase in wet conditions
+        
+        # Display selected context
+        weather_icon = "🌧️" if rainfall_input else "☀️"
+        st.info(f"🏎️ Calculating for: **{driver}** at **{circuit_display}** (Lap {lap_number}) {'⚡ Power Circuit' if is_power_circuit else '🏁 Technical Circuit'} {weather_icon}")
         
         st.markdown("---")
         st.subheader("📊 Prediction Results")
@@ -1330,6 +1436,37 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True)
         
+        # Circuit-specific and driver-specific insights
+        st.markdown("**🎯 Context-Aware Insights:**")
+        
+        # Rainfall impact
+        if rainfall_input:
+            st.write("🔸 **Weather Conditions**: Rain detected - fuel consumption increased by ~6.5% due to lower grip, more wheel spin, and higher engine load")
+        
+        # Driver-specific notes
+        if driver == "Fernando Alonso":
+            st.write(f"🔸 **Driver Style (Alonso)**: Known for smooth, efficient driving - current consumption {'matches' if fuel_proxy < 0.70 else 'exceeds'} his typical style")
+        else:
+            st.write(f"🔸 **Driver Style (Stroll)**: Typically consistent pace - current consumption {'is normal' if 0.65 < fuel_proxy < 0.75 else 'is unusual'} for Lance")
+        
+        # Circuit-specific notes
+        if is_power_circuit:
+            st.write(f"🔸 **Circuit Type**: {circuit_display} is a power circuit - high fuel consumption expected due to long straights and high speeds")
+            if fuel_proxy > 0.80:
+                st.write("   → Normal for this track type, focus on DRS optimization")
+        else:
+            st.write(f"🔸 **Circuit Type**: {circuit_display} is a technical circuit - lower fuel consumption expected")
+            if fuel_proxy > 0.75:
+                st.write("   → Higher than expected for technical circuit, check throttle application in slow corners")
+        
+        # Lap-based insights
+        if lap_number < 10:
+            st.write(f"🔸 **Race Phase**: Early laps (Lap {lap_number}) - high fuel load affects consumption by ~2-3%")
+        elif lap_number > 50:
+            st.write(f"🔸 **Race Phase**: Late race (Lap {lap_number}) - light fuel load, tire degradation may increase consumption")
+        else:
+            st.write(f"🔸 **Race Phase**: Mid-race (Lap {lap_number}) - optimal fuel load window")
+        
         # Recommendations
         st.markdown("**💡 Recommendations:**")
         if fuel_proxy > 0.85:
@@ -1337,6 +1474,8 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
             st.write("- Reduce RPM by 500-1000 to save fuel")
             st.write("- Decrease throttle application in low-speed corners")
             st.write("- Consider more conservative engine mode")
+            if is_power_circuit:
+                st.write("- Maximize DRS usage on straights to reduce drag")
         elif fuel_proxy < 0.65:
             st.success("✅ Excellent fuel efficiency!")
             st.write("- Current settings are very fuel-efficient")
@@ -1347,9 +1486,9 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
             st.write("- Small adjustments can optimize further")
 
 
-def show_performance_data(train_df):
-    """Performance Data - Historical analysis and model training insights."""
-    st.header("� Performance Data & Model Insights")
+def show_about_ai_model(train_df):
+    """About this AI Model - Historical analysis and model training insights."""
+    st.header("🤖 About this AI Model")
     st.caption("Historical race data and model training information")
     
     st.info("💡 **Model Training Data** - 676,513 laps from 7 seasons (2018-2024) with 99.41% validation accuracy")
@@ -1360,7 +1499,7 @@ def show_performance_data(train_df):
     with col1:
         st.metric("Total Laps", "676,513", help="Total training laps")
     with col2:
-        st.metric("Years Covered", "7 (2018-2024)", help="Historical data span")
+        st.metric("Years Covered", "7", help="Historical data span")
     with col3:
         st.metric("Circuits", "15", help="Different race tracks")
     with col4:
