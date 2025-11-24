@@ -13,6 +13,31 @@ from pathlib import Path
 import joblib
 from datetime import datetime
 
+# Constants for fuel scaling
+FUEL_BASELINES_KG = {
+    "bahrain": 1.84, "sakhir": 1.84,
+    "jeddah": 1.75, "melbourne": 1.70, "australia": 1.70,
+    "suzuka": 1.95, "japan": 1.95,
+    "shanghai": 1.80, "china": 1.80,
+    "miami": 1.80, "imola": 1.70, "monaco": 1.60,
+    "barcelona": 1.72, "spain": 1.72,
+    "montreal": 1.65, "canada": 1.65,
+    "austria": 1.65, "spielberg": 1.65,
+    "silverstone": 1.90, "britain": 1.90, "uk": 1.90,
+    "spa": 2.00, "belgium": 2.00,
+    "zandvoort": 1.70, "netherlands": 1.70,
+    "monza": 1.80, "italy": 1.80,
+    "baku": 2.00, "azerbaijan": 2.00,
+    "singapore": 1.90,
+    "austin": 1.80, "cota": 1.80, "united states": 1.80,
+    "mexico": 1.78,
+    "brazil": 1.72, "interlagos": 1.72,
+    "vegas": 1.85, "las vegas": 1.85,
+    "qatar": 1.80, "losail": 1.80,
+    "abudhabi": 1.74, "abu dhabi": 1.74, "yas marina": 1.74
+}
+FUEL_PROXY_ANCHOR = 1.00  # model proxy ~1.0 represents typical lap fuel consumption
+
 # Page configuration
 st.set_page_config(
     page_title="AMi-Fuel Dashboard",
@@ -29,7 +54,9 @@ st.markdown("""
     
     /* Dark green background for main app */
     .stApp {
-        background-color: #004b45;
+        background: radial-gradient(circle at 20% 20%, rgba(206,220,0,0.10), transparent 25%),
+                    radial-gradient(circle at 80% 10%, rgba(206,220,0,0.08), transparent 22%),
+                    linear-gradient(180deg, #00594c 0%, #003933 100%);
     }
     
     /* Hide Streamlit header bar */
@@ -40,17 +67,57 @@ st.markdown("""
     
     /* Main content area */
     .main .block-container {
-        background-color: #004b45;
+        background-color: rgba(0, 75, 69, 0.75);
         padding-top: 2rem;
+        padding-bottom: 2rem;
+        border-radius: 18px;
+        max-width: 1200px;
     }
     
-    /* Sidebar styling */
+    /* Sidebar styling - keep always visible and set custom width */
     section[data-testid="stSidebar"] {
         background-color: #003933 !important;
+        width: 340px !important;
+        min-width: 340px !important;
     }
     
     section[data-testid="stSidebar"] > div {
         background-color: #003933;
+        padding-top: 0.5rem;
+        padding-bottom: 1rem;
+    }
+    
+    /* Prevent sidebar from being collapsed/hidden */
+    div[data-testid="collapsedControl"] {
+        display: none !important;
+    }
+
+    /* Help tooltips (question marks) visibility */
+    [data-testid="stTooltipIcon"] svg {
+        width: 18px;
+        height: 18px;
+        color: #cedc00 !important;
+        fill: #cedc00 !important;
+        opacity: 1 !important;
+    }
+    [data-testid="stTooltipIcon"]:hover svg {
+        filter: drop-shadow(0 0 6px rgba(206,220,0,0.7));
+    }
+    /* Toggle sizing */
+    [data-baseweb="switch"] {
+        transform: scale(1.12);
+        margin-left: 8px;
+    }
+    /* Tooltip body styling for readability */
+    div[role="tooltip"], [data-baseweb="tooltip"], div[data-testid="stTooltipContent"] {
+        background: #003933 !important;
+        color: #ffffff !important;
+        border: 1px solid #cedc00 !important;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.4) !important;
+        z-index: 9999 !important;
+    }
+    div[role="tooltip"] *, [data-baseweb="tooltip"] *, div[data-testid="stTooltipContent"] * {
+        color: #ffffff !important;
     }
     
     /* Apply Stack Sans Notch to headers (modern, notched geometric style) */
@@ -137,11 +204,10 @@ st.markdown("""
         padding: 1rem;
         border-radius: 0.5rem;
         border-left: 4px solid #cedc00;
-        box-shadow: 0 1px 3px rgba(206, 220, 0, 0.2);
     }
     .stMetric {
-        background-color: #003933;
-        padding: 10px;
+        background-color: rgba(0, 57, 51, 0.9);
+        padding: 14px;
         border-radius: 5px;
         border: 2px solid #cedc00;
     }
@@ -439,6 +505,77 @@ st.markdown("""
         color: #004b45 !important;
     }
 
+    /* Content panels */
+    .stMarkdown:not(header) > div, .stTextInput, .stSelectbox, .stNumberInput, .stRadio, .stMultiSelect, .stSlider, .stDataFrame {
+        border-radius: 10px;
+    }
+    
+    /* Tabs styling */
+    [data-baseweb="tab-list"] {
+        background: linear-gradient(135deg, rgba(0,75,69,0.8), rgba(0,57,51,0.9));
+        border-radius: 12px;
+        padding: 6px;
+        border: 1px solid #cedc00;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    }
+    [role="tab"] {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        border: 1px solid transparent !important;
+        padding: 10px 16px !important;
+        transition: all 0.2s ease;
+    }
+    [role="tab"][aria-selected="true"] {
+        background: #cedc00 !important;
+        color: #004b45 !important;
+        border-color: #cedc00 !important;
+        box-shadow: 0 4px 10px rgba(206,220,0,0.35);
+    }
+    [role="tab"]:hover {
+        border-color: rgba(206,220,0,0.5) !important;
+    }
+    
+    /* Dataframe/table polish */
+    .stDataFrame table {
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .stDataFrame tbody tr:nth-child(even) td {
+        background-color: rgba(0,75,69,0.35) !important;
+    }
+    .stDataFrame tbody tr:hover td {
+        background-color: rgba(206,220,0,0.08) !important;
+    }
+    
+    /* Section dividers */
+    .stMarkdown hr {
+        border: none;
+        border-top: 1px solid rgba(206,220,0,0.35);
+        margin: 1.5rem 0;
+    }
+    
+    /* Metric cards refinement */
+    .stMetric {
+        box-shadow: none;
+    }
+    .stMetricLabel, .stMetricValue {
+        letter-spacing: 0.25px;
+    }
+    
+    /* Sidebar edge highlight */
+    section[data-testid="stSidebar"] {
+        box-shadow: 6px 0 20px rgba(0,0,0,0.35);
+    }
+    
+    /* Button polish */
+    .stButton button, .stDownloadButton button {
+        letter-spacing: 0.3px;
+        border-radius: 8px !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -458,16 +595,135 @@ def load_recommendations():
 
 @st.cache_resource
 def load_model():
-    """Load the trained model and scalers."""
+    """Load the trained model and scalers/encoders."""
     try:
         model_dir = Path("outputs/two_stage_model")
         model = joblib.load(model_dir / "finetuned_model.pkl")
         calibrator = joblib.load(model_dir / "calibrator.pkl")
-        scaler = joblib.load(model_dir / "scaler_global.pkl")
-        return model, calibrator, scaler
+        scaler_global = joblib.load(model_dir / "scaler_global.pkl")
+        scalers_per_team = joblib.load(model_dir / "scalers_per_team.pkl")
+        team_encoder = joblib.load(model_dir / "team_encoder.pkl")
+        circuit_encoder = joblib.load(model_dir / "circuit_encoder.pkl")
+        return model, calibrator, scaler_global, scalers_per_team, team_encoder, circuit_encoder
     except FileNotFoundError:
         st.warning("⚠️ Model files not found. Prediction features disabled.")
-        return None, None, None
+        return None, None, None, None, None, None
+
+
+def prepare_features_for_inference(
+    df_raw: pd.DataFrame,
+    team: str,
+    circuit_key: str,
+    year: int,
+    scaler_global,
+    scalers_per_team,
+    team_encoder,
+    circuit_encoder,
+    air_temp: float = 25.0,
+    track_temp: float = 35.0,
+    humidity: float = 60.0,
+    pressure: float = 1013.0,
+    wind_speed: float = 3.0,
+):
+    """Mirror training-time feature prep for a batch of samples."""
+    df = df_raw.rename(columns={
+        "rpm": "avg_rpm",
+        "throttle": "avg_throttle",
+        "speed": "avg_speed",
+        "gear": "avg_gear",
+    }).copy()
+    df["Team"] = team
+    df["gp"] = circuit_key
+    df["year"] = year
+    df["air_temp"] = df.get("air_temp", air_temp)
+    df["track_temp"] = df.get("track_temp", track_temp)
+    df["humidity"] = df.get("humidity", humidity)
+    df["pressure"] = df.get("pressure", pressure)
+    df["wind_speed"] = df.get("wind_speed", wind_speed)
+
+    base_features = ["avg_throttle", "avg_rpm", "avg_speed", "avg_gear"]
+    weather_features = ["air_temp", "track_temp", "humidity", "pressure", "wind_speed"]
+    available_weather = [f for f in weather_features if f in df.columns]
+
+    # Fill missing values
+    for col in base_features:
+        if col in df.columns:
+            df[col] = df[col].fillna(df[col].median())
+    for col in available_weather:
+        df[col] = df[col].fillna(df[col].median())
+
+    # Per-team normalization of telemetry
+    scaler = None
+    if scalers_per_team and team in scalers_per_team:
+        scaler = scalers_per_team[team]
+    elif scaler_global is not None:
+        scaler = scaler_global
+    if scaler is not None:
+        try:
+            df[base_features] = scaler.transform(df[base_features])
+        except Exception:
+            pass  # fallback silently if shape mismatch
+
+    # Encode team and circuit
+    def safe_encode(val, encoder):
+        try:
+            if val in encoder.classes_:
+                return encoder.transform([val])[0]
+        except Exception:
+            pass
+        return -1
+
+    df["team_encoded"] = safe_encode(team, team_encoder) if team_encoder is not None else -1
+    df["circuit_encoded"] = safe_encode(circuit_key, circuit_encoder) if circuit_encoder is not None else -1
+
+    # Interaction features (on normalized bases)
+    df["throttle_rpm"] = df["avg_throttle"] * df["avg_rpm"]
+    df["speed_gear"] = df["avg_speed"] * df["avg_gear"]
+    df["rpm_gear"] = df["avg_rpm"] * df["avg_gear"]
+    df["throttle_sq"] = df["avg_throttle"] ** 2
+    df["rpm_sq"] = df["avg_rpm"] ** 2
+    if "air_temp" in available_weather and "humidity" in available_weather:
+        df["temp_humidity"] = df["air_temp"] * df["humidity"]
+    if "track_temp" in available_weather:
+        df["track_temp_sq"] = df["track_temp"] ** 2
+
+    feature_cols = base_features + available_weather + [
+        "team_encoded",
+        "circuit_encoded",
+        "year",
+        "throttle_rpm",
+        "speed_gear",
+        "rpm_gear",
+        "throttle_sq",
+        "rpm_sq",
+    ]
+    if "temp_humidity" in df.columns:
+        feature_cols.append("temp_humidity")
+    if "track_temp_sq" in df.columns:
+        feature_cols.append("track_temp_sq")
+
+    return df[feature_cols]
+
+
+def predict_fuel(model, calibrator, scaler, df_features):
+    """
+    Predict fuel proxy using model + calibrator.
+    """
+    try:
+        preds = model.predict(df_features)
+        if calibrator is not None:
+            preds = calibrator.predict(preds)
+        return preds
+    except Exception:
+        return model.predict(df_features)
+
+
+def fuel_proxy_to_kg(circuit_key: str, proxy_value: float) -> float:
+    """Convert proxy prediction to kg/lap using circuit baseline map."""
+    key = (circuit_key or "").lower()
+    baseline = next((v for k, v in FUEL_BASELINES_KG.items() if k in key), 1.80)
+    kg = (proxy_value / FUEL_PROXY_ANCHOR) * baseline
+    return max(0.4, kg)
 
 
 @st.cache_data
@@ -493,7 +749,7 @@ def main():
     
     # Load data
     params_df, scenarios_df, circuits_df = load_recommendations()
-    model, calibrator, scaler = load_model()
+    model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder = load_model()
     train_df, data_type = load_training_data()
     
     if params_df is None:
@@ -511,7 +767,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Tool",
-        ["Race Strategy", "Quick Decisions", "Scenario Planning", "Circuit Intel", "Live Calculator", "About this AI Model", "Race Analysis"],
+        ["Race Strategy", "Scenario Planning", "Circuit Intel", "Live Calculator", "About this AI Model", "Race Analysis"],
         help="Choose the tool you need for the current phase of the race weekend"
     )
     
@@ -524,18 +780,16 @@ def main():
     # Main content based on page selection - Race Engineer Tools
     if page == "Race Strategy":
         show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall)
-    elif page == "Quick Decisions":
-        show_quick_decisions(params_df, air_temp, track_temp)
     elif page == "Scenario Planning":
         show_scenario_planning(scenarios_df, params_df)
     elif page == "Circuit Intel":
         show_circuit_intel(circuits_df, train_df)
     elif page == "Live Calculator":
-        show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfall)
+        show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder, air_temp, track_temp, rainfall)
     elif page in ("About this AI Model", "Performance Data", "About this AI model"):
         show_about_ai_model(train_df)
     elif page == "Race Analysis":
-        show_race_analysis(model, scaler)
+        show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder)
 
 
 def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall):
@@ -1247,7 +1501,7 @@ def show_circuit_intel(circuits_df, train_df):
                 st.plotly_chart(fig, use_container_width=True)
 
 
-def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfall):
+def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder, air_temp, track_temp, rainfall):
     """Live Calculator - Real-time fuel consumption predictions."""
     st.header("Live Fuel Calculator")
     st.caption("Real-time fuel consumption calculator for current session conditions")
@@ -1306,42 +1560,45 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
         )
         circuit_key = circuits_2025[circuit_display]
         is_power_circuit = 1 if circuit_key in power_circuits else 0
+        lap_limits = {
+            "bahrain": 57, "jeddah": 50, "melbourne": 58, "suzuka": 53,
+            "shanghai": 56, "miami": 57, "imola": 63, "monaco": 78,
+            "barcelona": 66, "montreal": 70, "austria": 71, "silverstone": 52,
+            "spa": 44, "zandvoort": 72, "monza": 53, "baku": 51,
+            "singapore": 62, "austin": 56, "mexico": 71, "brazil": 71,
+            "vegas": 50, "qatar": 57, "abudhabi": 58
+        }
+        max_laps = lap_limits.get(circuit_key, 70)
     
     with col_ctx3:
         lap_number = st.number_input(
             "Lap Number",
             min_value=1,
-            max_value=70,
-            value=20,
+            max_value=max_laps,
+            value=min(20, max_laps),
             help="Current lap in the race (affects tire deg, fuel load)"
         )
     
-    # Style the lap number buttons
+    # Style lap number input and steppers to be compact and on-brand
     st.markdown("""
     <style>
-    /* Target number input buttons */
-    button[data-testid="baseButton-secondary"] {
-        color: white !important;
-        font-weight: bold !important;
-        font-size: 20px !important;
+    div[data-testid="stNumberInput"] input {
+        text-align: center;
+        font-weight: 700;
+        color: #ffffff !important;
+        background: #003933 !important;
+        border: 2px solid #cedc00 !important;
+        border-radius: 8px !important;
     }
-    /* Decrease button (minus) - Red */
-    button[data-testid="baseButton-secondary"]:first-of-type,
-    button[data-testid="baseButton-secondary"]:first-of-type:hover,
-    button[data-testid="baseButton-secondary"]:first-of-type:focus,
-    button[data-testid="baseButton-secondary"]:first-of-type:active {
-        background-color: #dc3545 !important;
-        background: #dc3545 !important;
-        border-color: #dc3545 !important;
+    div[data-testid="stNumberInput"] button {
+        border: 1px solid #cedc00 !important;
+        background: #004b45 !important;
+        color: #cedc00 !important;
+        font-weight: 700 !important;
     }
-    /* Increase button (plus) - Green */
-    button[data-testid="baseButton-secondary"]:last-of-type,
-    button[data-testid="baseButton-secondary"]:last-of-type:hover,
-    button[data-testid="baseButton-secondary"]:last-of-type:focus,
-    button[data-testid="baseButton-secondary"]:last-of-type:active {
-        background-color: #28a745 !important;
-        background: #28a745 !important;
-        border-color: #28a745 !important;
+    div[data-testid="stNumberInput"] button:hover {
+        background: #cedc00 !important;
+        color: #004b45 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1362,7 +1619,7 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
     with col1:
         st.subheader("📊 Telemetry Inputs")
         throttle = st.slider("Average Throttle (%)", 0, 100, 70, help="Average throttle application")
-        rpm = st.slider("Average RPM", 8000, 12000, 10500, help="Average engine RPM")
+        rpm = st.slider("Average RPM", 8000, 13000, 11500, help="Average engine RPM")
         speed = st.slider("Average Speed (km/h)", 150, 320, 250, help="Average lap speed")
         gear = st.slider("Average Gear", 3, 8, 5, help="Average gear selection")
         drs_usage = st.slider("DRS Usage (%)", 0, 100, 15, help="% of lap with DRS active")
@@ -1375,16 +1632,60 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
         humidity = st.slider("Humidity (%)", 20, 95, 60, help="Relative humidity")
         pressure = st.slider("Pressure (mbar)", 980, 1020, 1013, help="Atmospheric pressure")
         wind_speed = st.slider("Wind Speed (m/s)", 0, 15, 3, help="Wind speed")
-        rainfall_input = st.toggle("Rainfall", value=rainfall, help="Is it raining during the session?")
+        rain_label, rain_toggle, _ = st.columns([0.25, 0.15, 0.6])
+        with rain_label:
+            st.markdown("**Rainfall**")
+        with rain_toggle:
+            rainfall_input = st.toggle(
+                "Rainfall",
+                value=rainfall,
+                help="Is it raining during the session?",
+                label_visibility="collapsed"
+            )
     
     # Calculate prediction
-    if st.button("🔮 Predict Fuel Consumption", type="primary"):
-        # Calculate fuel proxy
-        fuel_proxy = 0.60 * (rpm / 12000.0) + 0.40 * (throttle / 100.0)
+    center_btn = st.container()
+    with center_btn:
+        st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+        predict_clicked = st.button("🔮 Predict Fuel Consumption", type="primary")
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    if predict_clicked:
+        # Try model-based prediction first, fall back to heuristic if needed
+        ers_mode = max(0.0, min(4.0, ers_deployment / 25.0))  # map 0-100% slider to rough 0-4 ERS scale
+        predict_df = pd.DataFrame({
+            "rpm": [rpm],
+            "throttle": [throttle],
+            "speed": [speed],
+            "gear": [gear],
+            "ers": [ers_mode]
+        })
         
-        # Adjust for rainfall - wet conditions typically increase fuel consumption by 5-8%
+        try:
+            feature_df = prepare_features_for_inference(
+                predict_df,
+                team="Aston Martin",
+                circuit_key=circuit_key,
+                year=2024,
+                scaler_global=scaler,
+                scalers_per_team=scalers_per_team,
+                team_encoder=team_encoder,
+                circuit_encoder=circuit_encoder,
+                air_temp=air_temp_input,
+                track_temp=track_temp_input,
+                humidity=humidity,
+                pressure=pressure,
+                wind_speed=wind_speed
+            )
+            fuel_proxy = float(predict_fuel(model, calibrator, scaler, feature_df)[0])
+        except Exception:
+            fuel_proxy = 0.60 * (rpm / 13000.0) + 0.40 * (throttle / 100.0)
+        
+        # Adjust for rainfall - wet conditions typically increase fuel consumption by ~6-7%
         if rainfall_input:
             fuel_proxy *= 1.065  # 6.5% increase in wet conditions
+        
+        fuel_kg_per_lap = fuel_proxy_to_kg(circuit_key, fuel_proxy)
         
         # Display selected context
         weather_icon = "🌧️" if rainfall_input else "☀️"
@@ -1398,42 +1699,37 @@ def show_live_calculator(model, calibrator, scaler, air_temp, track_temp, rainfa
         with col1:
             st.metric("Fuel Proxy", f"{fuel_proxy:.3f}", help="Normalized fuel consumption metric")
         with col2:
-            relative_consumption = (fuel_proxy - 0.7) / 0.7 * 100
-            st.metric("vs Baseline", f"{relative_consumption:+.1f}%", help="Compared to typical consumption")
+            st.metric("Fuel (kg/lap)", f"{fuel_kg_per_lap:.3f}", help="Estimated kg burned per lap for this circuit")
         with col3:
-            if fuel_proxy < 0.65:
-                efficiency = "🟢 Very Efficient"
-            elif fuel_proxy < 0.75:
-                efficiency = "🟡 Efficient"
-            elif fuel_proxy < 0.85:
-                efficiency = "🟠 Moderate"
-            else:
-                efficiency = "🔴 High Consumption"
-            st.metric("Efficiency", efficiency)
+            relative_consumption = (fuel_proxy - FUEL_PROXY_ANCHOR) / FUEL_PROXY_ANCHOR * 100
+            st.metric("vs Baseline", f"{relative_consumption:+.1f}%", help="Compared to typical consumption")
         
-        # Visual gauge
+        # Visual gauge (kg/lap scale)
+        baseline = fuel_proxy_to_kg(circuit_key, FUEL_PROXY_ANCHOR)
+        max_range = max(2.5, baseline * 1.6, fuel_kg_per_lap * 1.3)
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=fuel_proxy,
+            value=fuel_kg_per_lap,
+            number={'suffix': " kg/lap"},
             domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "Fuel Consumption"},
+            title={'text': "Fuel Consumption (kg/lap)"},
             gauge={
-                'axis': {'range': [None, 1.2]},
+                'axis': {'range': [0, max_range]},
                 'bar': {'color': "#00594C"},
                 'steps': [
-                    {'range': [0, 0.65], 'color': "lightgreen"},
-                    {'range': [0.65, 0.75], 'color': "yellow"},
-                    {'range': [0.75, 0.85], 'color': "orange"},
-                    {'range': [0.85, 1.2], 'color': "red"}
+                    {'range': [0, baseline * 0.95], 'color': "lightgreen"},
+                    {'range': [baseline * 0.95, baseline * 1.05], 'color': "yellow"},
+                    {'range': [baseline * 1.05, baseline * 1.20], 'color': "orange"},
+                    {'range': [baseline * 1.20, max_range], 'color': "red"}
                 ],
                 'threshold': {
-                    'line': {'color': "red", 'width': 4},
+                    'line': {'color': "white", 'width': 4},
                     'thickness': 0.75,
-                    'value': 0.85
+                    'value': fuel_kg_per_lap
                 }
             }
         ))
-        fig.update_layout(height=300)
+        fig.update_layout(height=320)
         st.plotly_chart(fig, use_container_width=True)
         
         # Circuit-specific and driver-specific insights
@@ -1621,7 +1917,7 @@ def show_about_ai_model(train_df):
                                ["Fuel Proxy Distribution", "RPM vs Throttle", "Weather Impact", "Speed Analysis"])
         
         if viz_type == "Fuel Proxy Distribution":
-            fuel_proxy = 0.60 * (filtered_df['avg_rpm'] / 12000.0) + 0.40 * (filtered_df['avg_throttle'] / 100.0)
+            fuel_proxy = 0.60 * (filtered_df['avg_rpm'] / 13000.0) + 0.40 * (filtered_df['avg_throttle'] / 100.0)
             fig = px.histogram(fuel_proxy, nbins=50, title="Fuel Proxy Distribution",
                               labels={'value': 'Fuel Proxy', 'count': 'Frequency'})
             fig.update_traces(marker_color='#00594C')
@@ -1654,7 +1950,7 @@ def show_about_ai_model(train_df):
             st.dataframe(filtered_df.head(100), use_container_width=True)
 
 
-def show_race_analysis(model, scaler):
+def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder):
     """Race Analysis - Deep dive into past Aston Martin races using FastF1 data."""
     st.header("Past Race Analysis")
     st.caption("Analyze historical Aston Martin races with real telemetry data from FastF1")
@@ -1859,6 +2155,75 @@ def show_race_analysis(model, scaler):
             file_name=f"{race_data['driver_code']}_{race_data['year']}_{race_data['race']}_laps.csv",
             mime="text/csv"
         )
+        
+        st.markdown("---")
+        st.markdown("#### Fuel-Adjusted Lap Time Model")
+        st.caption("Uses FastF1 lap times plus a 0.03s/kg fuel effect to estimate burn rate and show fuel-corrected laps.")
+        
+        stint_options = ["All stints"] + sorted([str(s) for s in laps['Stint'].dropna().unique()])
+        selected_stint = st.selectbox("Stint", stint_options, help="Choose a stint to analyze fuel effect on lap times")
+        initial_fuel = st.number_input("Initial Fuel Load (kg)", min_value=60.0, max_value=115.0, value=110.0, step=1.0)
+        fuel_effect = st.number_input("Fuel Weight Effect (s/kg)", min_value=0.01, max_value=0.05, value=0.03, step=0.005)
+        
+        stint_mask = laps['Stint'].astype(str) == selected_stint if selected_stint != "All stints" else np.ones(len(laps), dtype=bool)
+        stint_laps = laps[stint_mask].copy()
+        stint_laps = stint_laps[pd.notna(stint_laps['LapTime'])]
+        
+        if len(stint_laps) >= 3:
+            # Build lap index starting at zero for slope fit
+            stint_laps = stint_laps.sort_values('LapNumber').reset_index(drop=True)
+            stint_laps['LapTime_s'] = stint_laps['LapTime'].dt.total_seconds()
+            x_idx = np.arange(len(stint_laps))
+            y_time = stint_laps['LapTime_s'].values
+            
+            # Linear fit of lap time vs lap index; slope ≈ -burn_rate * fuel_effect
+            slope, intercept = np.polyfit(x_idx, y_time, 1)
+            est_burn_rate = max(0.0, -slope / fuel_effect)
+            base_lap = intercept - initial_fuel * fuel_effect  # lap time with zero fuel using fitted line
+            
+            # Compute remaining fuel curve and corrected lap times
+            stint_laps['Fuel Remaining (kg)'] = np.clip(initial_fuel - est_burn_rate * x_idx, a_min=0, a_max=None)
+            stint_laps['Fuel-Corrected Lap (s)'] = stint_laps['LapTime_s'] - stint_laps['Fuel Remaining (kg)'] * fuel_effect
+            
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                st.metric("Estimated Burn Rate", f"{est_burn_rate:.3f} kg/lap", help="Derived from lap-time slope and 0.03s/kg fuel effect")
+            with col_f2:
+                st.metric("No-Fuel Pace (est.)", f"{base_lap:.3f} s", help="Lap time extrapolated to zero fuel using fitted line")
+            with col_f3:
+                st.metric("Avg Corrected Lap", f"{stint_laps['Fuel-Corrected Lap (s)'].mean():.3f} s")
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=stint_laps['LapNumber'],
+                y=stint_laps['LapTime_s'],
+                mode='lines+markers',
+                name='Recorded Lap Time',
+                line=dict(color='#cedc00', width=2),
+                marker=dict(size=6)
+            ))
+            fig.add_trace(go.Scatter(
+                x=stint_laps['LapNumber'],
+                y=stint_laps['Fuel-Corrected Lap (s)'],
+                mode='lines+markers',
+                name='Fuel-Corrected Lap',
+                line=dict(color='#66ff66', width=2, dash='dot'),
+                marker=dict(size=6)
+            ))
+            fig.update_layout(
+                title="Lap Times vs Fuel-Corrected Lap Times",
+                xaxis_title="Lap Number",
+                yaxis_title="Lap Time (s)",
+                plot_bgcolor='#003933',
+                paper_bgcolor='#004b45',
+                font=dict(color='#ffffff'),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.caption("Assumes monotonic fuel burn; unexpected trends may reflect traffic, tires, VSC/SC, or lifts.")
+        else:
+            st.info("Need at least 3 laps with valid lap times to estimate fuel burn.")
     
     with tab2:
         st.markdown("### Telemetry Analysis")
@@ -2008,6 +2373,8 @@ def show_race_analysis(model, scaler):
         st.markdown("### ⛽ Fuel Cost of Reality")
         st.caption("Quantifying the fuel expense of how the driver actually drove")
         
+        race_key = str(race_data.get('race', '')).lower()
+        
         st.markdown("""
         <div style="background: linear-gradient(135deg, #003933 0%, #004b45 100%); 
                     padding: 1rem; border-radius: 8px; border-left: 4px solid #cedc00; 
@@ -2027,15 +2394,8 @@ def show_race_analysis(model, scaler):
             lap_telemetry = race_data.get('telemetry', {})
             
             for idx, lap in laps.iterrows():
-                # Initialize default values
-                avg_rpm = 11000
-                avg_throttle = 70
                 avg_speed = 200
-                avg_gear = 5
                 data_source = 'Default'
-                
-                # Get actual telemetry DataFrame for this lap (not pre-aggregated)
-                lap_num = lap['LapNumber']
                 fuel_pred = None
                 
                 # Try to get full telemetry and predict on all samples
@@ -2043,29 +2403,31 @@ def show_race_analysis(model, scaler):
                     tel = lap.get_telemetry()
                     
                     if tel is not None and len(tel) > 0:
-                        # Check if we have the required columns
                         has_required = all(col in tel.columns for col in ['RPM', 'Throttle', 'Speed', 'nGear'])
                         
                         if has_required:
-                            # Prepare telemetry data for prediction
-                            X_tel = pd.DataFrame({
-                                'rpm': tel['RPM'],
-                                'throttle': tel['Throttle'],
-                                'speed': tel['Speed'],
-                                'gear': tel['nGear'],
-                                'ers': 2.5  # Default ERS mode for all samples
-                            })
+                            # Aggregate telemetry to lap-level means (model expects lap features)
+                            X_tel_raw = pd.DataFrame([{
+                                'rpm': tel['RPM'].mean(),
+                                'throttle': tel['Throttle'].mean(),
+                                'speed': tel['Speed'].mean(),
+                                'gear': tel['nGear'].mean(),
+                            }]).dropna()
                             
-                            # Drop any rows with NaN values
-                            X_tel = X_tel.dropna()
-                            
-                            if len(X_tel) > 0:
-                                # Predict fuel for each telemetry sample
-                                fuel_samples = model.predict(X_tel)
-                                # Sum all samples to get total lap fuel
-                                fuel_pred = fuel_samples.sum()
+                            if len(X_tel_raw) > 0:
+                                X_tel = prepare_features_for_inference(
+                                    X_tel_raw,
+                                    team="Aston Martin",
+                                    circuit_key=race_key,
+                                    year=year,
+                                    scaler_global=scaler,
+                                    scalers_per_team=scalers_per_team,
+                                    team_encoder=team_encoder,
+                                    circuit_encoder=circuit_encoder
+                                )
+                                fuel_pred = float(predict_fuel(model, calibrator, scaler, X_tel)[0])
                                 data_source = 'Telemetry'
-                except Exception as e:
+                except Exception:
                     pass  # Fall back to estimation
                 
                 # If no telemetry-based prediction, fall back to estimates
@@ -2078,30 +2440,36 @@ def show_race_analysis(model, scaler):
                     elif hasattr(lap, 'SpeedI1') and pd.notna(lap.SpeedI1):
                         avg_speed = lap.SpeedI1
                     
-                    # Estimate with defaults - use lap time to vary the prediction
                     try:
                         lap_time_seconds = lap['LapTime'].total_seconds() if pd.notna(lap['LapTime']) else 90
-                        
-                        # Prepare model input - vary based on lap time
-                        X = pd.DataFrame({
+                        X_raw = pd.DataFrame({
                             'rpm': [11000 + (90 - lap_time_seconds) * 50],  # Faster laps = higher RPM
                             'throttle': [70 + (90 - lap_time_seconds) * 0.3],  # Faster laps = more throttle
                             'speed': [avg_speed],
                             'gear': [5],
-                            'ers': [2.5]
                         })
-                        
-                        # Predict fuel
-                        fuel_pred = model.predict(X)[0]
+                        X = prepare_features_for_inference(
+                            X_raw,
+                            team="Aston Martin",
+                            circuit_key=race_key,
+                            year=year,
+                            scaler_global=scaler,
+                            scalers_per_team=scalers_per_team,
+                            team_encoder=team_encoder,
+                            circuit_encoder=circuit_encoder
+                        )
+                        fuel_pred = predict_fuel(model, calibrator, scaler, X)[0]
                         data_source = 'Estimated'
-                    except:
-                        fuel_pred = 0.65
+                    except Exception:
+                        fuel_pred = 0.65  # fallback proxy
                         data_source = 'Default'
                 
-                # Add to results
+                fuel_pred_kg = fuel_proxy_to_kg(race_key, fuel_pred)
+                
                 fuel_estimates.append({
                     'Lap': lap['LapNumber'],
-                    'Estimated Fuel': fuel_pred,
+                    'Fuel Proxy': fuel_pred,
+                    'Estimated Fuel (kg/lap)': fuel_pred_kg,
                     'Compound': lap['Compound'],
                     'Lap Time': str(lap['LapTime']).split()[-1] if pd.notna(lap['LapTime']) else 'N/A',
                     'Data Source': data_source
@@ -2122,24 +2490,24 @@ def show_race_analysis(model, scaler):
                 st.markdown("#### 📊 Race Fuel Summary")
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    total_fuel = fuel_df['Estimated Fuel'].sum()
-                    st.metric("Total Fuel Cost", f"{total_fuel:.2f}", 
+                    total_fuel = fuel_df['Estimated Fuel (kg/lap)'].sum()
+                    st.metric("Total Fuel Cost", f"{total_fuel:.2f} kg", 
                              help="Cumulative fuel consumed based on actual driving")
                 with col2:
-                    avg_fuel = fuel_df['Estimated Fuel'].mean()
-                    st.metric("Avg per Lap", f"{avg_fuel:.3f}",
+                    avg_fuel = fuel_df['Estimated Fuel (kg/lap)'].mean()
+                    st.metric("Avg per Lap", f"{avg_fuel:.3f} kg",
                              help="Average fuel expense per lap")
                 with col3:
-                    max_fuel_lap = fuel_df.loc[fuel_df['Estimated Fuel'].idxmax(), 'Lap']
-                    max_fuel_val = fuel_df['Estimated Fuel'].max()
+                    max_fuel_lap = fuel_df.loc[fuel_df['Estimated Fuel (kg/lap)'].idxmax(), 'Lap']
+                    max_fuel_val = fuel_df['Estimated Fuel (kg/lap)'].max()
                     st.metric("Most Expensive Lap", f"L{int(max_fuel_lap)}", 
-                             f"{max_fuel_val:.3f} units",
+                             f"{max_fuel_val:.3f} kg",
                              help="Lap with highest fuel consumption")
                 with col4:
-                    min_fuel_lap = fuel_df.loc[fuel_df['Estimated Fuel'].idxmin(), 'Lap']
-                    min_fuel_val = fuel_df['Estimated Fuel'].min()
+                    min_fuel_lap = fuel_df.loc[fuel_df['Estimated Fuel (kg/lap)'].idxmin(), 'Lap']
+                    min_fuel_val = fuel_df['Estimated Fuel (kg/lap)'].min()
                     st.metric("Most Efficient Lap", f"L{int(min_fuel_lap)}", 
-                             f"{min_fuel_val:.3f} units",
+                             f"{min_fuel_val:.3f} kg",
                              help="Lap with lowest fuel consumption")
                 
                 # Fuel consumption chart with annotations
@@ -2156,13 +2524,13 @@ def show_race_analysis(model, scaler):
                     color = '#cedc00' if source == 'Telemetry' else ('#66ff66' if source == 'Estimated' else '#ff9866')
                     fig.add_trace(go.Scatter(
                         x=source_data['Lap'],
-                        y=source_data['Estimated Fuel'],
+                        y=source_data['Estimated Fuel (kg/lap)'],
                         mode='lines+markers',
                         name=f'{source} Data',
                         line=dict(color=color, width=2.5),
                         marker=dict(size=7),
                         hovertemplate='<b>Lap %{x}</b><br>' +
-                                     'Fuel: %{y:.4f} units<br>' +
+                                     'Fuel: %{y:.3f} kg/lap<br>' +
                                      '<extra></extra>'
                     ))
                 
@@ -2190,7 +2558,7 @@ def show_race_analysis(model, scaler):
                 fig.update_layout(
                     title="Fuel Cost of Reality: Lap-by-Lap Analysis",
                     xaxis_title="Lap Number",
-                    yaxis_title="Estimated Fuel Consumption (proxy units)",
+                    yaxis_title="Estimated Fuel Consumption (kg/lap)",
                     plot_bgcolor='#003933',
                     paper_bgcolor='#004b45',
                     font=dict(color='#ffffff', size=12),
