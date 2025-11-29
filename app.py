@@ -80,6 +80,12 @@ st.markdown("""
         background-color: #003933 !important;
         width: 340px !important;
         min-width: 340px !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: sticky;
+        top: 0;
+        height: 100vh;
     }
     
     section[data-testid="stSidebar"] > div {
@@ -91,6 +97,10 @@ st.markdown("""
     /* Prevent sidebar from being collapsed/hidden */
     div[data-testid="collapsedControl"] {
         display: none !important;
+    }
+    /* Force sidebar toggle state to open if Streamlit tries to collapse */
+    [data-testid="stSidebarNav"] {
+        min-height: 100vh;
     }
 
     /* Help tooltips (question marks) visibility */
