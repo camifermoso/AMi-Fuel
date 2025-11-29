@@ -1,18 +1,20 @@
 
 # AMi-Fuel
-**Aston Martin Intelligent Fuel**  
-Machine learning for predictive fuel optimization in Formula 1 racing.
+**Aston Martin Intelligent Fuel (AMi-Fuel)**  
+Streamlit dashboard and ML stack for Aston Martin F1 fuel intelligence.
 
 ## Description
-**AMi-Fuel** is a comprehensive machine-learning-driven system that models and optimizes race-fuel consumption using real and synthetic telemetry data. By learning how driving parameters (RPM, throttle, ERS deployment, speed, gear, DRS) affect fuel flow, AMi-Fuel helps engineers balance performance and efficiency without altering car design or fuel chemistry.
+AMi-Fuel blends a calibrated tree-based model with an engineer-focused UI. The model learns how RPM, throttle, ERS/DRS usage, gear, speed, and weather shape fuel burn, then maps a normalized `fuel_proxy` to kg/lap with circuit baselines. The dashboard exposes:
+- **Fuel Strategy Simulator** (Live Calculator): per-lap fuel burn gauge, setup levers, and top-performer cards keyed to race context.
+- **Race Fuel Debrief**: lap-by-lap fuel cost from FastF1 sessions with telemetry or fallbacks, total/avg fuel, and variation across laps.
+- **AI Model Briefing**: training coverage (2018-2024, 676k laps), Aston Martin subset, circuit coverage image, and live data summaries when training data is available.
 
 ### Key Features
-- **Data Preprocessing Pipeline**: Comprehensive cleaning, aggregation, and normalization of F1 telemetry data
-- **Feature Engineering**: Creates physics-inspired features (power estimate, efficiency metrics, energy intensity)
-- **Ensemble ML Models**: Random Forest and Gradient Boosting regressors for accurate fuel prediction
-- **Optimization Engine**: Grid search and lap-by-lap optimization to minimize fuel consumption
-- **Real F1 Data**: Integrates with FastF1 to fetch and analyze real race telemetry
-- **Validation Framework**: Cross-validation and held-out test sets for robust evaluation
+- **Live dashboard**: Streamlit app with always-visible sidebar and custom Aston Martin theming.
+- **Calibrated ML**: Gradient-boosted trees with calibration and circuit baselines to convert `fuel_proxy` → kg/lap.
+- **Fuel debref**: Per-lap fuel estimation from race telemetry; totals normalized to realistic race ranges (100–105 kg, Monaco 95–100 kg).
+- **Data pipelines**: Preprocessing, feature engineering, and training scripts for fuel modeling (real + synthetic telemetry).
+- **FastF1 integration**: Pulls and caches race sessions for Aston Martin drivers (2021–2024).
 
 ## Project Structure
 ```
@@ -57,82 +59,18 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Complete Pipeline (Recommended)
-Run the full preprocessing and training pipeline:
+### Run the dashboard (Streamlit)
 ```bash
-python scripts/build_proxy_and_train.py
+streamlit run app.py
 ```
+Use the sidebar to switch between Fuel Strategy Simulator, Race Fuel Debrief, and AI Model Briefing.
 
-This will:
-1. Clean and preprocess the raw telemetry data
-2. Aggregate multiple telemetry samples per lap
-3. Engineer additional features
-4. Normalize all features
-5. Train a Random Forest fuel consumption model
-6. Evaluate on held-out test set
-7. Save all outputs
-
-### Step-by-Step Workflow
-
-#### 1. Fetch Real F1 Data (Optional)
-Download telemetry from specific circuits (Singapore, Spain, Canada, etc.):
-```bash
-python scripts/fetch_fastf1_highfuel.py
-```
-
-#### 2. Preprocess Data
-Clean, aggregate, and normalize the raw telemetry:
-```bash
-python src/data_preprocessing.py \
-  --train data/train_highfuel.csv \
-  --test data/test_highfuel.csv \
-  --output-dir data/processed \
-  --scaler robust
-```
-
-**Preprocessing Steps:**
-- Remove duplicates and outliers
-- Handle missing values (drop critical, impute non-critical)
-- Aggregate multiple telemetry samples per lap
-- Engineer features (power estimate, efficiency metrics)
-- Normalize using RobustScaler (handles outliers better)
-- Create fuel consumption proxy target
-
-#### 3. Train Model
-Train the fuel consumption model:
-```bash
-python src/fuel_model.py \
-  --data data/processed/train_processed.csv \
-  --model-type random_forest \
-  --test-size 0.25 \
-  --cv 5 \
-  --save-model outputs/fuel_model.pkl
-```
-
-**Model Options:**
-- `random_forest`: Ensemble of decision trees (default, robust)
-- `gradient_boosting`: Sequential boosting (often more accurate)
-
-#### 4. Optimize Strategy
-Find optimal throttle and ERS deployment:
-```bash
-python src/optimizer.py \
-  --data data/processed/train_processed.csv \
-  --model outputs/fuel_model.pkl \
-  --out outputs/optimized_strategy.csv
-```
-
-**Optimization Options:**
-- Global optimization: Find single best strategy across all laps
-- Lap-by-lap: Optimize each lap individually (use `--lap-by-lap` flag)
-
-#### 5. Generate Synthetic Data (for testing)
-```bash
-python scripts/generate_synth_data.py \
-  --laps 50 \
-  --seed 42 \
-  --out data/synth_telemetry.csv
-```
+### Model pipeline (optional CLI)
+- `scripts/build_proxy_and_train.py`: end-to-end preprocessing + training
+- `src/data_preprocessing.py`: clean/aggregate/normalize telemetry
+- `src/fuel_model.py`: train (random_forest/gradient_boosting) and evaluate
+- `scripts/fetch_fastf1_highfuel.py`: pull FastF1 telemetry
+- `scripts/generate_synth_data.py`: synthetic laps for testing
 
 ## Data Preprocessing Details
 
@@ -183,9 +121,9 @@ Weights based on:
 
 ## Model Performance
 
-### Typical Metrics
-- **R² Score**: 0.85-0.95 (excellent predictive power)
-- **MAE**: 0.02-0.04 (low average error)
+### Typical Metrics (from training runs)
+- **R² Score**: ~0.85-0.95
+- **MAE**: ~0.02-0.04
 - **Cross-validation**: Consistent across folds
 
 ### Feature Importance
