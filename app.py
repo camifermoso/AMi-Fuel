@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 from pathlib import Path
 import joblib
 from datetime import datetime
+import base64
 
 # Constants for fuel scaling
 FUEL_BASELINES_KG = {
@@ -43,7 +44,7 @@ st.set_page_config(
     page_title="AMi-Fuel Dashboard",
     page_icon="🏎️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded"  # Sidebar is shown by default, user can collapse with arrow
 )
 
 # Custom CSS with custom fonts
@@ -86,7 +87,7 @@ st.markdown("""
         padding-top: 0.5rem;
         padding-bottom: 1rem;
     }
-    
+
     /* Prevent sidebar from being collapsed/hidden */
     div[data-testid="collapsedControl"] {
         display: none !important;
@@ -828,7 +829,7 @@ def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp,
     
     with col1:
         st.metric(
-            "💧 Max Fuel Saving", 
+            "⛽ Max Fuel Saving", 
             f"{total_fuel_saved:.1f} kg", 
             delta=f"~{total_time_saving:.1f}s lap time gain",
             help="Total optimization potential for full race distance"
@@ -1679,7 +1680,8 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
             )
             fuel_proxy = float(predict_fuel(model, calibrator, scaler, feature_df)[0])
         except Exception:
-            fuel_proxy = 0.60 * (rpm / 13000.0) + 0.40 * (throttle / 100.0)
+            # Fallback uses the training-time proxy normalization (12000 rpm scale)
+            fuel_proxy = 0.60 * (rpm / 12000.0) + 0.40 * (throttle / 100.0)
         
         # Adjust for rainfall - wet conditions typically increase fuel consumption by ~6-7%
         if rainfall_input:
@@ -1805,24 +1807,20 @@ def show_about_ai_model(train_df):
     
     # Circuit breakdown
     st.subheader("🗺️ Circuit Coverage")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**High-Fuel Circuits (5 circuits, 7 years each):**")
-        st.write("- 🇧🇭 Bahrain Grand Prix")
-        st.write("- 🇪🇸 Spanish Grand Prix")
-        st.write("- 🇨🇦 Canadian Grand Prix")
-        st.write("- 🇸🇬 Singapore Grand Prix")
-        st.write("- 🇯🇵 Japanese Grand Prix")
-    
-    with col2:
-        st.markdown("**Additional Circuits (10 circuits, 3 years each):**")
-        st.write("- 🇦🇺 Australian GP, 🇸🇦 Saudi Arabian GP")
-        st.write("- 🇦🇪 Abu Dhabi GP, 🇦🇹 Austrian GP")
-        st.write("- 🇬🇧 British GP, 🇮🇹 Italian GP")
-        st.write("- 🇧🇪 Belgian GP, 🇳🇱 Dutch GP")
-        st.write("- 🇺🇸 United States GP, 🇲🇽 Mexico GP")
+    image_path = Path("assets/Circuits.png")
+    if image_path.exists():
+        with open(image_path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode()
+        st.markdown(
+            f"""
+            <img src="data:image/png;base64,{encoded}" alt="Circuit coverage"
+                 style="width:100%;height:auto;pointer-events:none;user-select:none;border-radius:8px;" />
+            """,
+            unsafe_allow_html=True,
+        )
+        st.info("💡 Circuit coverage training mix: high-fuel circuits have 7 full seasons of data, while technical and mixed layouts add three seasons each to diversify race pace patterns.")
+    else:
+        st.warning("Circuit coverage image not found.")
     
     st.markdown("---")
     
@@ -1917,7 +1915,7 @@ def show_about_ai_model(train_df):
                                ["Fuel Proxy Distribution", "RPM vs Throttle", "Weather Impact", "Speed Analysis"])
         
         if viz_type == "Fuel Proxy Distribution":
-            fuel_proxy = 0.60 * (filtered_df['avg_rpm'] / 13000.0) + 0.40 * (filtered_df['avg_throttle'] / 100.0)
+            fuel_proxy = 0.60 * (filtered_df['avg_rpm'] / 12000.0) + 0.40 * (filtered_df['avg_throttle'] / 100.0)
             fig = px.histogram(fuel_proxy, nbins=50, title="Fuel Proxy Distribution",
                               labels={'value': 'Fuel Proxy', 'count': 'Frequency'})
             fig.update_traces(marker_color='#00594C')
