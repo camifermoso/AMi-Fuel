@@ -88,6 +88,39 @@ st.markdown("""
         height: 100vh;
     }
     
+    /* Telemetry Pulse Line Container */
+    .telemetry-pulse-container {
+        position: fixed;
+        top: 10px;
+        left: 0;
+        width: 100%;
+        height: 120px;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+        opacity: 0.4;
+    }
+    
+    /* The SVG that scrolls */
+    .telemetry-pulse-svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 200%; /* Twice the width to allow for smooth scrolling */
+        height: 100%;
+        animation: scroll 25s linear infinite;
+    }
+    
+    /* The waveform line itself */
+    .telemetry-pulse-line {
+        stroke: #cedc00; /* Neon green */
+        stroke-width: 1px;
+        fill: none;
+        filter: drop-shadow(0 0 4px rgba(206, 220, 0, 0.7));
+        animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    
     section[data-testid="stSidebar"] > div {
         background-color: #003933;
         padding-top: 0.5rem;
@@ -97,6 +130,21 @@ st.markdown("""
     /* Prevent sidebar from being collapsed/hidden */
     div[data-testid="collapsedControl"] {
         display: none !important;
+    }
+    button[aria-label="Hide sidebar"],
+    button[aria-label="Show sidebar"],
+    button[title="Menu"],
+    button[aria-label*="menu" i],
+    button[title*="menu" i],
+    button[data-testid="baseButton-headerNoAuthMenu"],
+    [data-testid="stSidebarNav"] + div button {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    /* Catch-all: remove any collapse/chevron buttons inside the sidebar header area */
+    section[data-testid="stSidebar"] button {
+        display: none !important;
+        visibility: hidden !important;
     }
     /* Force sidebar toggle state to open if Streamlit tries to collapse */
     [data-testid="stSidebarNav"] {
@@ -301,6 +349,22 @@ st.markdown("""
         }
     }
     
+    /* Keyframes for the telemetry line scroll */
+    @keyframes scroll {
+        from {
+            transform: translateX(0);
+        }
+        to {
+            transform: translateX(-50%); /* Scrolls one full screen width */
+        }
+    }
+    
+    /* Keyframes for the subtle pulse effect */
+    @keyframes pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+    }
+    
     /* Apply padding with transition */
     .custom-details[open] .custom-details-content {
         padding: 1rem;
@@ -443,6 +507,27 @@ st.markdown("""
     /* All text in slider container */
     .stSlider * {
         color: #ffffff !important;
+    }
+    
+    /* --- Slider Micro-animations --- */
+    /* Base style for the slider thumb */
+    .stSlider [role="slider"] {
+        background-color: #cedc00;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 8px rgba(206, 220, 0, 0.3);
+        transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+    
+    /* Glow effect on hover */
+    .stSlider [role="slider"]:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 14px 4px rgba(206, 220, 0, 0.6);
+    }
+    
+    /* Stronger glow effect when actively dragging */
+    .stSlider [role="slider"]:active {
+        transform: scale(1.2);
+        box-shadow: 0 0 20px 6px rgba(206, 220, 0, 0.8);
     }
     
     /* Checkbox */
@@ -755,6 +840,15 @@ def load_training_data():
 
 def main():
     # Header - Race Engineer Focused
+    # Add the Telemetry Pulse Line HTML
+    st.markdown("""
+        <div class="telemetry-pulse-container">
+            <svg class="telemetry-pulse-svg" preserveAspectRatio="none">
+                <path class="telemetry-pulse-line" d="M0,60 C100,20 150,100 250,60 S400,20 500,60 S650,100 750,60 S900,20 1000,60 S1150,100 1250,60 S1400,20 1500,60 S1650,100 1750,60 S1900,20 2000,60 S2150,100 2250,60 S2400,20 2500,60 S2650,100 2750,60 S2900,20 3000,60 S3150,100 3250,60 S3400,20 3500,60 S3650,100 3750,60 S3900,20 4000,60" vector-effect="non-scaling-stroke"></path>
+            </svg>
+        </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown('<div class="main-header"> AMi-Fuel Race Engineer System</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Real-Time Fuel Strategy Decision Support</div>', unsafe_allow_html=True)
     
@@ -767,7 +861,7 @@ def main():
         st.stop()
     
     # Sidebar - Race Weekend Context
-    st.sidebar.title("🏁 Race Control")
+    st.sidebar.title("Race Control")
     
     # Set default weather values (hidden from UI)
     air_temp = 25.0
@@ -778,7 +872,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Tool",
-        ["Race Strategy", "Scenario Planning", "Circuit Intel", "Live Calculator", "About this AI Model", "Race Analysis"],
+        ["Fuel Strategy Simulator", "Race Fuel Debrief", "AI Model Briefing"],
         help="Choose the tool you need for the current phase of the race weekend"
     )
     
@@ -787,20 +881,23 @@ def main():
     st.sidebar.subheader("System Status")
     st.sidebar.metric("Model Confidence", "99.4%", help="Validated on unseen races")
     st.sidebar.caption(f"🕒 Last sync: {datetime.now().strftime('%H:%M:%S')}")
+    st.sidebar.caption("Dataset Version: 2.3 — Updated 2025-11-27")
+    
+    # Footer credit
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("""
+    <div style='font-size: 0.75rem; color: #a0a0a0;'>
+        Engineered by C. Fermoso<br>Aramco x Aston Martin 2025
+    </div>
+    """, unsafe_allow_html=True)
     
     # Main content based on page selection - Race Engineer Tools
-    if page == "Race Strategy":
-        show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall)
-    elif page == "Scenario Planning":
-        show_scenario_planning(scenarios_df, params_df)
-    elif page == "Circuit Intel":
-        show_circuit_intel(circuits_df, train_df)
-    elif page == "Live Calculator":
+    if page == "Fuel Strategy Simulator":
         show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder, air_temp, track_temp, rainfall)
-    elif page in ("About this AI Model", "Performance Data", "About this AI model"):
-        show_about_ai_model(train_df)
-    elif page == "Race Analysis":
+    elif page == "Race Fuel Debrief":
         show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder)
+    elif page == "AI Model Briefing":
+        show_ai_model_briefing(train_df)
 
 
 def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp, track_temp, rainfall):
@@ -872,184 +969,7 @@ def show_race_strategy(params_df, scenarios_df, circuits_df, train_df, air_temp,
     
     st.markdown("---")
     
-    # Interactive Strategy Selector - Race Engineer Decision Tool
-    st.subheader("⚙️ Setup Adjustment Evaluator")
-    st.caption("Compare setup changes and their impact on fuel consumption vs lap time")
-    
-    col1, col2, col3 = st.columns([2, 1, 1])
-    
-    with col1:
-        selected_strategies = st.multiselect(
-            "Select setup parameters to evaluate",
-            options=params_df['Parameter'].tolist(),
-            default=params_df.nlargest(3, 'Fuel Saved')['Parameter'].tolist()[:3],
-            max_selections=5,
-            help="Choose up to 5 parameters to compare their race impact"
-        )
-    
-    with col2:
-        chart_type = st.radio(
-            "View Type",
-            ["Comparison", "Trade-off", "Multi-Axis"],
-            horizontal=False,
-            help="Comparison=bars, Trade-off=scatter, Multi-Axis=radar"
-        )
-    
-    with col3:
-        priority = st.radio(
-            "Priority",
-            ["Fuel Focus", "Time Focus", "Balanced"],
-            help="Filter recommendations based on race strategy priority"
-        )
-    
-    if selected_strategies:
-        filtered_df = params_df[params_df['Parameter'].isin(selected_strategies)].copy()
-        
-        # Apply priority filter
-        if priority == "Fuel Focus":
-            filtered_df = filtered_df.nlargest(min(5, len(filtered_df)), 'Fuel Saved')
-            st.info("🎯 Showing strategies with maximum fuel savings")
-        elif priority == "Time Focus":
-            filtered_df = filtered_df.nsmallest(min(5, len(filtered_df)), 'Time Cost')
-            st.info("⚡ Showing strategies with minimum time penalty")
-        else:
-            filtered_df['balance_score'] = (filtered_df['Fuel Saved'] / filtered_df['Fuel Saved'].max()) - (filtered_df['Time Cost'] / filtered_df['Time Cost'].max())
-            filtered_df = filtered_df.nlargest(min(5, len(filtered_df)), 'balance_score')
-            st.info("⚖️ Showing balanced fuel/time trade-off strategies")
-        
-        # Dynamic chart based on selection
-        if chart_type == "Comparison":
-            fig = go.Figure()
-            
-            # Fuel Saved bars
-            fig.add_trace(go.Bar(
-                name='Fuel Saved (kg)',
-                x=filtered_df['Parameter'],
-                y=filtered_df['Fuel Saved'],
-                marker_color='#cedc00',
-                text=filtered_df['Fuel Saved'].round(2),
-                textposition='outside',
-                yaxis='y'
-            ))
-            
-            # Time Cost bars (on secondary axis)
-            fig.add_trace(go.Bar(
-                name='Time Cost (s)',
-                x=filtered_df['Parameter'],
-                y=filtered_df['Time Cost'],
-                marker_color='#ff6b6b',
-                text=filtered_df['Time Cost'].round(2),
-                textposition='outside',
-                yaxis='y2',
-                opacity=0.7
-            ))
-            
-            fig.update_layout(
-                title="Race Setup Analysis: Fuel vs Time Impact",
-                xaxis=dict(title="Setup Parameter", tickangle=-45),
-                yaxis=dict(title="Fuel Saved (kg/race)", side='left', color='#cedc00'),
-                yaxis2=dict(title="Time Cost (s/race)", side='right', overlaying='y', color='#ff6b6b'),
-                height=500,
-                hovermode='x unified',
-                plot_bgcolor='#003933',
-                paper_bgcolor='#004b45',
-                font=dict(color='#ffffff', family='Inter'),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-        elif chart_type == "Trade-off":
-            fig = px.scatter(
-                filtered_df,
-                x='Time Cost',
-                y='Fuel Saved',
-                text='Parameter',
-                size='Fuel Saved',
-                color='Fuel Saved',
-                color_continuous_scale=['#004b45', '#cedc00'],
-                title='⚖️ Performance Trade-off Matrix',
-                labels={'Time Cost': 'Lap Time Penalty (s)', 'Fuel Saved': 'Fuel Reduction (kg)'},
-                height=500
-            )
-            
-            # Add quadrant lines
-            mean_time = filtered_df['Time Cost'].mean()
-            mean_fuel = filtered_df['Fuel Saved'].mean()
-            
-            fig.add_hline(y=mean_fuel, line_dash="dot", line_color="#cedc00", opacity=0.5, annotation_text="Avg Fuel")
-            fig.add_vline(x=mean_time, line_dash="dot", line_color="#ff6b6b", opacity=0.5, annotation_text="Avg Time")
-            
-            fig.update_traces(
-                textposition='top center',
-                marker=dict(line=dict(width=2, color='#ffffff'))
-            )
-            fig.update_layout(
-                plot_bgcolor='#003933',
-                paper_bgcolor='#004b45',
-                font=dict(color='#ffffff', family='Inter'),
-                showlegend=False,
-                annotations=[
-                    dict(text="🌟 IDEAL ZONE<br>(Low Time, High Fuel)", x=mean_time*0.5, y=mean_fuel*1.2, 
-                         showarrow=False, font=dict(color='#66ff66', size=10), opacity=0.7)
-                ]
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-        else:  # Multi-Axis (Radar)
-            # Normalize values for radar chart
-            max_fuel = filtered_df['Fuel Saved'].max()
-            max_time = filtered_df['Time Cost'].max()
-            
-            fig = go.Figure()
-            
-            for idx, row in filtered_df.iterrows():
-                fig.add_trace(go.Scatterpolar(
-                    r=[
-                        (row['Fuel Saved'] / max_fuel) * 100,
-                        (1 - row['Time Cost'] / max_time) * 100,  # Invert time cost (lower is better)
-                        (row['Fuel Saved'] / row['Time Cost'] if row['Time Cost'] > 0 else 0) * 10
-                    ],
-                    theta=['Fuel Savings', 'Time Efficiency', 'Overall Efficiency'],
-                    fill='toself',
-                    name=row['Parameter'][:30]
-                ))
-            
-            fig.update_layout(
-                polar=dict(
-                    radialaxis=dict(visible=True, range=[0, 100], color='#cedc00'),
-                    bgcolor='#003933'
-                ),
-                title="Multi-Dimensional Strategy Comparison",
-                height=500,
-                paper_bgcolor='#004b45',
-                font=dict(color='#ffffff', family='Inter'),
-                showlegend=True,
-                legend=dict(orientation="h", yanchor="bottom", y=-0.2)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Comparison table
-        st.markdown("### 📊 Detailed Comparison")
-        comparison_data = filtered_df[['Parameter', 'Reduction', 'Fuel Saved', 'Time Cost']].copy()
-        comparison_data['Efficiency'] = (comparison_data['Fuel Saved'] / comparison_data['Time Cost']).round(3)
-        comparison_data = comparison_data.sort_values('Fuel Saved', ascending=False)
-        
-        # Style the dataframe
-        st.dataframe(
-            comparison_data,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Parameter": st.column_config.TextColumn("Strategy", width="medium"),
-                "Reduction": st.column_config.TextColumn("Reduction", width="small"),
-                "Fuel Saved": st.column_config.NumberColumn("Fuel Saved (kg)", format="%.2f"),
-                "Time Cost": st.column_config.NumberColumn("Time Cost (s)", format="%.2f"),
-                "Efficiency": st.column_config.NumberColumn("Efficiency Ratio", format="%.3f", help="kg saved per second")
-            }
-        )
-    
+    # Removed Setup Adjustment Evaluator
     st.markdown("---")
     
     # Performance insights cards
@@ -1353,170 +1273,38 @@ def show_recommendations(params_df):
 
 
 def show_scenario_planning(scenarios_df, params_df):
-    """Scenario Planning - Race strategy simulation."""
-    st.header("🏁 Race Scenario Planning")
-    st.caption("Simulate and compare race strategies under different conditions")
-    
-    # Scenario builder
-    st.markdown("### 🎮 Custom Scenario Builder")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        strategy = st.select_slider("Strategy Type", ["Conservative", "Balanced", "Aggressive"], value="Balanced")
-    with col2:
-        safety_cars = st.number_input("Expected Safety Cars", 0, 3, 1)
-    with col3:
-        tire_stops = st.selectbox("Tire Strategy", ["1-Stop", "2-Stop", "3-Stop"])
-    
-    st.markdown("---")
-    show_race_scenarios(scenarios_df)
+    """Scenario Planning has been removed."""
+    st.info("Scenario Planning has been removed for this deployment.")
 
 
 def show_race_scenarios(scenarios_df):
-    """Display race scenario analysis."""
-    st.markdown("### � Pre-Configured Race Scenarios")
-    
-    st.info("💡 Proven strategies for different race situations")
-    
-    if scenarios_df is not None:
-        # Add fuel saved as numeric column for sorting
-        scenarios_df['Fuel Saved Numeric'] = scenarios_df['Fuel Saved (Race)'].str.replace(' kg', '').astype(float)
-        scenarios_df = scenarios_df.sort_values('Fuel Saved Numeric', ascending=False)
-        
-        # Create tabs for different scenario types
-        scenario_types = scenarios_df['Scenario'].unique()
-        
-        for idx, scenario in enumerate(scenario_types):
-            scenario_name = str(scenario)
-            scenario_data = scenarios_df[scenarios_df['Scenario'] == scenario].iloc[0]
-            is_open = "open" if idx == 0 else ""
-            
-            # Build the content HTML
-            positions = scenario_data.get('Positions Lost', 'N/A')
-            strategy = scenario_data['Strategy']
-            when_to_use = scenario_data.get('When to Use', 'N/A')
-            
-            # Determine usage tips
-            usage_tips = ""
-            if 'MINIMAL' in scenario or 'Minimal' in scenario:
-                usage_tips = """
-                <p>✅ Use when: Managing fuel to finish comfortably</p>
-                <p>❌ Avoid when: Need to push hard for positions</p>
-                """
-            elif 'BALANCED' in scenario or 'Balanced' in scenario:
-                usage_tips = """
-                <p>✅ Use when: Normal race conditions, consistent pace needed</p>
-                <p>❌ Avoid when: Extreme weather conditions</p>
-                """
-            elif 'CRITICAL' in scenario or 'Critical' in scenario:
-                usage_tips = """
-                <p>✅ Use when: Must save fuel to finish race</p>
-                <p>❌ Avoid when: Fighting for positions</p>
-                """
-            elif 'TIRE' in scenario or 'Tire' in scenario:
-                usage_tips = """
-                <p>✅ Use when: Extending stint, managing both resources</p>
-                <p>❌ Avoid when: Need maximum pace</p>
-                """
-            
-            # Custom HTML collapsible with ALL content inside
-            st.markdown(f"""
-            <details class="custom-details" {is_open}>
-                <summary>📋 {scenario_name}</summary>
-                <div class="custom-details-content">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                        <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
-                            <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">💧 Fuel Saved</div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{scenario_data['Fuel Saved (Race)']}</div>
-                        </div>
-                        <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
-                            <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">⏱️ Time Cost</div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{scenario_data['Time Cost (Race)']}</div>
-                        </div>
-                        <div style="background: #004b45; padding: 1rem; border-radius: 8px; border: 2px solid #cedc00; box-shadow: 0 2px 6px rgba(206,220,0,0.2);">
-                            <div style="font-size: 0.8rem; color: #cedc00; font-weight: 600; text-transform: uppercase;">📍 Est. Positions Lost</div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{positions}</div>
-                        </div>
-                    </div>
-                    <p><strong>Strategy:</strong> {strategy}</p>
-                    <p><strong>When to Use:</strong> {when_to_use}</p>
-                    {usage_tips}
-                </div>
-            </details>
-            """, unsafe_allow_html=True)
-
-
-def show_circuit_intel(circuits_df, train_df):
-    """Circuit Intelligence - Track-specific fuel strategies."""
-    st.header("🗺️ Circuit Intelligence Database")
-    st.caption("Track-specific fuel strategies and historical performance data")
-    
-    st.info("💡 Pre-race preparation: Review circuit-specific fuel optimization strategies")
-    
-    if circuits_df is not None:
-        # Circuit selector
-        circuits = circuits_df['Circuit Type'].unique()
-        selected_circuit = st.selectbox("Select Circuit Type", circuits)
-        
-        circuit_data = circuits_df[circuits_df['Circuit Type'] == selected_circuit].iloc[0]
-        
-        # Display circuit strategy
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("💧 Fuel Saved", circuit_data['Fuel Saved'])
-        with col2:
-            st.metric("⏱️ Time Cost", circuit_data['Time Cost (Race)'])
-        with col3:
-            st.metric("📊 Baseline Fuel", circuit_data.get('AM Baseline Fuel', 'N/A'))
-        with col4:
-            positions = circuit_data.get('Positions Impact', 'N/A')
-            st.metric("📍 Positions Impact", positions)
-        
-        st.markdown("---")
-        st.markdown("**Best Strategy:**")
-        st.write(circuit_data['Best Strategy'])
-        
-        st.markdown("**AM Advantage:**")
-        st.write(circuit_data.get('AM Advantage', 'N/A'))
-        
-        st.markdown("**Critical Notes:**")
-        st.write(circuit_data.get('Critical Notes', 'N/A'))
-        
-        # Historical data if available
-        if train_df is not None:
-            st.markdown("---")
-            st.subheader(f"📈 Historical Training Data Overview")
-            
-            # Show overall statistics since circuit CSV uses circuit types, not specific circuits
-            am_laps = train_df[train_df['Team'] == 'Aston Martin']
-            
-            if len(am_laps) > 0:
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("Total AM Laps", len(am_laps))
-                with col2:
-                    years = am_laps['year'].unique()
-                    st.metric("Years Covered", f"{len(years)} ({min(years)}-{max(years)})")
-                with col3:
-                    avg_temp = am_laps['air_temp'].mean()
-                    st.metric("Avg Air Temp", f"{avg_temp:.1f}°C")
-                
-                # Weather distribution
-                st.markdown("**Weather Conditions Distribution:**")
-                fig = go.Figure()
-                fig.add_trace(go.Box(y=am_laps['air_temp'], name='Air Temp (°C)'))
-                fig.add_trace(go.Box(y=am_laps['track_temp'], name='Track Temp (°C)'))
-                fig.add_trace(go.Box(y=am_laps['humidity'], name='Humidity (%)'))
-                fig.update_layout(height=300, showlegend=True)
-                st.plotly_chart(fig, use_container_width=True)
+    """Scenario Planning has been removed."""
+    st.info("Scenario Planning has been removed for this deployment.")
 
 
 def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder, air_temp, track_temp, rainfall):
-    """Live Calculator - Real-time fuel consumption predictions."""
-    st.header("Live Fuel Calculator")
-    st.caption("Real-time fuel consumption calculator for current session conditions")
+    """Fuel Strategy Simulator - Real-time fuel consumption predictions."""
+    st.header("Fuel Strategy Simulator")
+    st.caption("Simulate fuel usage and generate strategy insights in real time.")
     
+    # Helper to encode image for CSS
+    def get_image_as_base64(path):
+        if not Path(path).exists():
+            return None
+        with open(path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+
+    # Custom CSS for the track background
+    st.markdown("""
+    <style>
+    .simulator-background {
+        position: relative;
+        z-index: 1;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     if model is None:
         st.error("Model not loaded. Please ensure model files exist in outputs/two_stage_model/")
         return
@@ -1590,6 +1378,33 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
             help="Current lap in the race (affects tire deg, fuel load)"
         )
     
+    # --- Dynamic Track Background Injection ---
+    track_image_path = f"assets/tracks/{circuit_key}.png"
+    track_image_base64 = get_image_as_base64(track_image_path)
+    
+    if track_image_base64:
+        st.markdown(f"""
+        <style>
+        .main .block-container {{
+            position: relative;
+        }}
+        .main .block-container::before {{
+            content: '';
+            position: absolute;
+            top: 150px; /* Position below header */
+            left: 5%;
+            width: 90%;
+            height: 70%;
+            background-image: url('data:image/png;base64,{track_image_base64}');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: contain;
+            opacity: 0.08; /* Faint 8% opacity */
+            z-index: -1;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
+
     # Style lap number input and steppers to be compact and on-brand
     st.markdown("""
     <style>
@@ -1664,6 +1479,42 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
     if predict_clicked:
         # Try model-based prediction first, fall back to heuristic if needed
         ers_mode = max(0.0, min(4.0, ers_deployment / 25.0))  # map 0-100% slider to rough 0-4 ERS scale
+        # Telemetry-inspired heuristic proxy (aligns with FastF1 lap signals)
+        nominal = {
+            "rpm": 11000.0,
+            "throttle": 70.0,
+            "speed": 230.0,
+            "gear": 5.5,
+            "drs": 20.0,
+        }
+        # Relative deltas around nominal
+        rpm_delta = (rpm - nominal["rpm"]) / nominal["rpm"]
+        throttle_delta = (throttle - nominal["throttle"]) / nominal["throttle"]
+        speed_delta = (speed - nominal["speed"]) / nominal["speed"]
+        gear_delta = (gear - nominal["gear"]) / nominal["gear"]
+        drs_delta = (drs_usage - nominal["drs"]) / nominal["drs"]
+        
+        heuristic_ratio = (
+            1.0
+            + 0.55 * rpm_delta
+            + 0.30 * throttle_delta
+            + 0.12 * speed_delta
+            + 0.06 * gear_delta
+            - 0.10 * drs_delta  # more DRS lowers drag → lower burn
+        )
+        # Weather load: hotter track/air and higher humidity increase burn slightly
+        temp_load = 0.0
+        if track_temp_input > 45:
+            temp_load += 0.02
+        elif track_temp_input < 25:
+            temp_load -= 0.01
+        if air_temp_input > 35:
+            temp_load += 0.015
+        if humidity > 85:
+            temp_load += 0.01
+        heuristic_ratio *= (1.0 + temp_load)
+        heuristic_proxy = float(np.clip(heuristic_ratio * FUEL_PROXY_ANCHOR, 0.45, 1.35))
+        
         predict_df = pd.DataFrame({
             "rpm": [rpm],
             "throttle": [throttle],
@@ -1688,10 +1539,23 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
                 pressure=pressure,
                 wind_speed=wind_speed
             )
-            fuel_proxy = float(predict_fuel(model, calibrator, scaler, feature_df)[0])
+            model_proxy = float(predict_fuel(model, calibrator, scaler, feature_df)[0])
+            # Blend model signal with telemetry-inspired heuristic to stabilize outputs
+            fuel_proxy = 0.55 * model_proxy + 0.45 * heuristic_proxy
         except Exception:
-            # Fallback uses the training-time proxy normalization (12000 rpm scale)
-            fuel_proxy = 0.60 * (rpm / 12000.0) + 0.40 * (throttle / 100.0)
+            fuel_proxy = heuristic_proxy
+        
+        # Circuit-type adjustment
+        if is_power_circuit:
+            fuel_proxy *= 1.03
+        else:
+            fuel_proxy *= 0.99
+        
+        # Lap phase adjustment (heavy fuel early, lighter late)
+        if lap_number < 10:
+            fuel_proxy *= 1.025
+        elif lap_number > max(max_laps * 0.7, 45):
+            fuel_proxy *= 0.98
         
         # Adjust for rainfall - wet conditions typically increase fuel consumption by ~6-7%
         if rainfall_input:
@@ -1715,6 +1579,53 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
         with col3:
             relative_consumption = (fuel_proxy - FUEL_PROXY_ANCHOR) / FUEL_PROXY_ANCHOR * 100
             st.metric("vs Baseline", f"{relative_consumption:+.1f}%", help="Compared to typical consumption")
+        
+        # Thresholds for status/strategies
+        high_threshold = 22 if is_power_circuit else 18  # % above baseline
+        low_threshold = -10  # % below baseline
+        
+        # Targeted reduction planner
+        reduction_target = st.number_input(
+            "Target fuel reduction (%)",
+            min_value=0.0,
+            max_value=30.0,
+            value=6.0,
+            step=0.5,
+            help="Enter how much you want to cut current fuel burn (percentage of current kg/lap).",
+        )
+        if reduction_target > 0:
+            target_fuel = fuel_kg_per_lap * (1 - reduction_target / 100)
+            st.info(f"🎛️ Target: lower to ~{target_fuel:.3f} kg/lap ({reduction_target:.1f}% cut from {fuel_kg_per_lap:.3f} kg/lap)")
+            if reduction_target >= 15:
+                actions = [
+                    "Aggressive lift/coast: brake points +90-120m earlier on heavy stops.",
+                    "Short-shift by 400-600 RPM on exits; avoid full throttle until straightened.",
+                    "Engine mode Fuel 2/3 + Low ERS deploy on longest straights.",
+                    "DRS prioritize: maximize openings; trim wing if balance allows.",
+                ]
+            elif reduction_target >= 8:
+                actions = [
+                    "Moderate lift/coast: lift 60-80m earlier into T1/T2/T3.",
+                    "Short-shift by 250-400 RPM; smooth throttle ramps in slow corners.",
+                    "Balanced ERS deploy: shift energy to mid-length straights.",
+                    "Brake migration tweaks to reduce micro-locks and drag losses.",
+                ]
+            else:
+                actions = [
+                    "Micro lift/coast: lift 30-50m early into heavy stops.",
+                    "Short-shift by ~200 RPM; avoid minor wheelspin on exits.",
+                    "Keep DRS uptime high; minor front-wing trim for straightline gain.",
+                    "Stay in balanced ERS mode; avoid over-deploy on the longest straight.",
+                ]
+            for tip in actions:
+                st.markdown(
+                    f"""
+                    <div style="background:#003933; padding:0.6rem 0.75rem; border-radius:8px; border-left:4px solid #cedc00; margin-bottom:0.45rem;">
+                        <div style="color:#ffffff; font-size:0.95rem;">{tip}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
         
         # Visual gauge (kg/lap scale)
         baseline = fuel_proxy_to_kg(circuit_key, FUEL_PROXY_ANCHOR)
@@ -1744,60 +1655,257 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
         fig.update_layout(height=320)
         st.plotly_chart(fig, use_container_width=True)
         
+        # Dynamic strategy suggestions based on live burn rate
+        # Setup-style levers (RPM / Throttle / Speed) with reduction, fuel saved, time cost, efficiency
+        st.subheader("🔧 Setup Lever Recommendations")
+        if relative_consumption > high_threshold:
+            levers = [
+                {"label": "Average RPM", "reduction": 12, "note": "Cap revs early on straights; short-shift consistently."},
+                {"label": "Average Throttle", "reduction": 10, "note": "Smoother ramps in slow/medium corners; avoid flat-out drags."},
+                {"label": "Average Speed", "reduction": 8, "note": "Back off entry/exit speed slightly to trim drag and over-rotation."},
+            ]
+        elif relative_consumption > 6:
+            levers = [
+                {"label": "Average RPM", "reduction": 8, "note": "Early upshifts in gears 4-6; stay below ~11.1k on exits."},
+                {"label": "Average Throttle", "reduction": 6, "note": "Trim throttle midspeed corners; avoid small throttle stabs."},
+                {"label": "Average Speed", "reduction": 5, "note": "Shed ~2-3 km/h through long radius corners to cut drag."},
+            ]
+        else:
+            levers = [
+                {"label": "Average RPM", "reduction": 5, "note": "Mild short-shifts; keep revs under ~11.4k on exits."},
+                {"label": "Average Throttle", "reduction": 4, "note": "Micro lift/coast and smoother throttle ramps."},
+                {"label": "Average Speed", "reduction": 3, "note": "Slightly gentler corner exits to maintain efficiency."},
+            ]
+        
+        laps_left = max(0, max_laps - lap_number)
+        lever_cards = []
+        for lever in levers:
+            reduction_pct = lever["reduction"]
+            fuel_saved_total = fuel_kg_per_lap * laps_left * (reduction_pct / 100.0)
+            time_cost_total = laps_left * 0.35 * (reduction_pct / 10.0)  # heuristic seconds over remaining race
+            efficiency = fuel_saved_total / time_cost_total if time_cost_total > 0 else 0
+            lever_cards.append(
+                {
+                    "label": lever["label"],
+                    "reduction": reduction_pct,
+                    "fuel_saved": fuel_saved_total,
+                    "time_cost": time_cost_total,
+                    "efficiency": efficiency,
+                    "note": lever["note"],
+                }
+            )
+
+        # Top performer cards based on remaining laps
+        if lever_cards and laps_left > 0:
+            st.subheader("🏆 Top Performers (Remaining Race)")
+            st.caption("Ranked by remaining-laps impact; fuel/time values scale with laps left.")
+            top_saver = max(lever_cards, key=lambda x: x["fuel_saved"])
+            top_eff = max(lever_cards, key=lambda x: x["efficiency"])
+            low_time = min(lever_cards, key=lambda x: x["time_cost"])
+            cards = [
+                ("🥇 Most Fuel Saved", top_saver, "#66ff66"),
+                ("⚡ Most Efficient", top_eff, "#cedc00"),
+                ("🚀 Lowest Time Cost", low_time, "#ff9966"),
+            ]
+            cols = st.columns(3)
+            for col, (title, card, color) in zip(cols, cards):
+                with col:
+                    col.markdown(
+                        f"""
+                        <div style="background: linear-gradient(135deg, #004b45 0%, #003933 100%); padding: 1.1rem; border-radius: 12px; border: 2px solid {color}; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                            <div style="font-size: 0.9rem; color: {color}; font-weight: 700; text-transform: uppercase; margin-bottom: 0.45rem;">{title}</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #ffffff; margin-bottom: 0.35rem;">{card['label']}</div>
+                            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; color:#ffffff; font-size:0.95rem;">
+                                <div><div style="font-size:0.75rem; color:#cedc00;">Fuel Saved (remaining)</div><div style="font-size:1.05rem; font-weight:700;">{card['fuel_saved']:.2f} kg</div></div>
+                                <div><div style="font-size:0.75rem; color:#cedc00;">Time Cost (remaining)</div><div style="font-size:1.05rem; font-weight:700;">{card['time_cost']:.2f}s</div></div>
+                                <div><div style="font-size:0.75rem; color:#cedc00;">Efficiency</div><div style="font-size:1.05rem; font-weight:700;">{card['efficiency']:.2f}</div></div>
+                                <div><div style="font-size:0.75rem; color:#cedc00;">Reduction</div><div style="font-size:1.05rem; font-weight:700;">{card['reduction']}%</div></div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+        # Setup-style levers (RPM / Throttle / Speed) with reduction, fuel saved, time cost, efficiency
+        st.subheader("🔧 Setup Lever Recommendations")
+        for lever in lever_cards:
+            st.markdown(
+                f"""
+                <div style="background:#004b45; padding:1rem 1.2rem; border-radius:12px; border-left:5px solid #ff9240; margin-bottom:0.7rem;">
+                    <div style="font-size:1.1rem; font-weight:700; color:#ffffff; margin-bottom:0.35rem;">{lever['label']}</div>
+                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; align-items:center; color:#ffffff; font-size:0.95rem;">
+                        <div><div style="font-size:0.75rem; color:#cedc00; letter-spacing:0.5px;">FUEL SAVED (remaining)</div><div style="font-size:1.1rem; font-weight:700;">{lever['fuel_saved']:.2f} kg</div></div>
+                        <div><div style="font-size:0.75rem; color:#cedc00; letter-spacing:0.5px;">TIME COST (remaining)</div><div style="font-size:1.1rem; font-weight:700;">{lever['time_cost']:.2f}s</div></div>
+                        <div><div style="font-size:0.75rem; color:#cedc00; letter-spacing:0.5px;">EFFICIENCY</div><div style="font-size:1.1rem; font-weight:700;">{lever['efficiency']:.2f}</div></div>
+                        <div><div style="font-size:0.75rem; color:#cedc00; letter-spacing:0.5px;">REDUCTION</div><div style="font-size:1.1rem; font-weight:700;">{lever['reduction']}%</div></div>
+                    </div>
+                    <div style="margin-top:0.4rem; color:#e8f7f0; font-size:0.9rem;">{lever['note']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # Dynamic strategy suggestions based on live burn rate (after levers)
+        st.subheader("🎯 Live Strategy Recommendations")
+        strategies = []
+        # Thresholds based on relative burn vs baseline
+        if relative_consumption > high_threshold:
+            strategies = [
+                {
+                    "name": "Heavy Lift/Coast + Short Shift",
+                    "fuel": "0.25-0.35 kg/lap saved",
+                    "time": "0.05-0.08s cost",
+                    "note": "Lift 90-120m early, cap avg RPM ~10.6-10.9k, drop avg throttle to mid-60s%, target avg speed -5 km/h, short-shift 400-600 RPM."
+                },
+                {
+                    "name": "Low ERS Deploy + Engine Mode Fuel 2",
+                    "fuel": "0.10-0.18 kg/lap saved",
+                    "time": "0.04-0.07s cost",
+                    "note": "Use conservative engine mode on long straights; shift ERS deploy later in gears 4-6; keep avg gear one step higher in slow corners."
+                },
+                {
+                    "name": "DRS Priority + Anti-Drag Trim",
+                    "fuel": "0.06-0.10 kg/lap saved",
+                    "time": "Minimal",
+                    "note": "Maximize DRS uptime; trim flap if balance allows; aim avg throttle <65% on non-DRS corners to cut drag losses."
+                },
+            ]
+        elif relative_consumption > 6:
+            strategies = [
+                {
+                    "name": "Moderate Lift/Coast + Brake Regen",
+                    "fuel": "0.14-0.22 kg/lap saved",
+                    "time": "0.03-0.05s cost",
+                    "note": "Lift 60-80m early into heavy stops; cap avg RPM to ~11.1k; hold avg throttle high-60s%; drop avg speed ~3 km/h; lean on brake regen."
+                },
+                {
+                    "name": "ERS Balanced Deploy",
+                    "fuel": "0.05-0.09 kg/lap saved",
+                    "time": "Minimal",
+                    "note": "Shift deploy to mid-corner exits; avoid full deploy on the longest straight; short-shift 250-350 RPM in gears 4-6."
+                },
+                {
+                    "name": "Throttle/Traction Tidy",
+                    "fuel": "0.03-0.06 kg/lap saved",
+                    "time": "Minimal",
+                    "note": "Smooth throttle ramps; keep avg throttle ~68-72%; avoid over-revs on exits; use traction maps to cut wheelspin in low gears."
+                },
+            ]
+        else:
+            strategies = [
+                {
+                    "name": "Push With DRS Efficiency",
+                    "fuel": "Maintain",
+                    "time": "Gain 0.02-0.04s",
+                    "note": "Maintain burn: keep avg RPM <11.5k, throttle ~72-75%; maximize DRS uptime; minor front-wing trim for speed."
+                },
+                {
+                    "name": "Targeted ERS Attack",
+                    "fuel": "Maintain",
+                    "time": "Gain 0.03-0.06s",
+                    "note": "Deploy on top-2 straights only; avoid over-revs (>11.6k) in gears 6-7; keep avg speed on target without dragging throttle."
+                },
+                {
+                    "name": "Brake/Shift Fine-Tune",
+                    "fuel": "0.02-0.04 kg/lap saved",
+                    "time": "Neutral",
+                    "note": "Use brake migration to stabilize entries; short-shift ~200 RPM in slow exits; keep avg gear slightly higher to cut revs without pace loss."
+                },
+            ]
+        
+        for strat in strategies:
+            st.markdown(
+                f"""
+                <div style="background:#003933; padding:0.9rem 1rem; border-radius:10px; border-left:4px solid #cedc00; margin-bottom:0.6rem; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                        <div style="font-weight:700; color:#ffffff;">{strat['name']}</div>
+                        <div style="font-size:0.8rem; color:#cedc00;">Fuel: {strat['fuel']}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+                        <div style="font-size:0.85rem; color:#cedc00;">Time: {strat['time']}</div>
+                        <div style="font-size:0.75rem; color:#66ff66; font-weight:600;">Live-adjusted</div>
+                    </div>
+                    <div style="font-size:0.85rem; color:#ffffff;">{strat['note']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        
         # Circuit-specific and driver-specific insights
-        st.markdown("**🎯 Context-Aware Insights:**")
-        
-        # Rainfall impact
+        st.markdown("### 🎯 Context-Aware Insights")
+        insight_notes = []
         if rainfall_input:
-            st.write("🔸 **Weather Conditions**: Rain detected - fuel consumption increased by ~6.5% due to lower grip, more wheel spin, and higher engine load")
-        
-        # Driver-specific notes
+            insight_notes.append("🌧️ Weather: Rain adds ~6.5% burn from low grip and wheel spin.")
         if driver == "Fernando Alonso":
-            st.write(f"🔸 **Driver Style (Alonso)**: Known for smooth, efficient driving - current consumption {'matches' if fuel_proxy < 0.70 else 'exceeds'} his typical style")
+            insight_notes.append(f"🧠 Alonso style: {'Efficient' if fuel_proxy < 0.70 else 'Higher than usual'} burn for his smooth driving profile.")
         else:
-            st.write(f"🔸 **Driver Style (Stroll)**: Typically consistent pace - current consumption {'is normal' if 0.65 < fuel_proxy < 0.75 else 'is unusual'} for Lance")
-        
-        # Circuit-specific notes
+            insight_notes.append(f"🎯 Stroll style: {'Normal' if 0.65 < fuel_proxy < 0.75 else 'Higher than typical'} — watch exits.")
         if is_power_circuit:
-            st.write(f"🔸 **Circuit Type**: {circuit_display} is a power circuit - high fuel consumption expected due to long straights and high speeds")
-            if fuel_proxy > 0.80:
-                st.write("   → Normal for this track type, focus on DRS optimization")
+            insight_notes.append(f"⚡ Track: {circuit_display} power circuit — expect higher burn; maximize DRS and short-shift on exits.")
         else:
-            st.write(f"🔸 **Circuit Type**: {circuit_display} is a technical circuit - lower fuel consumption expected")
-            if fuel_proxy > 0.75:
-                st.write("   → Higher than expected for technical circuit, check throttle application in slow corners")
-        
-        # Lap-based insights
+            insight_notes.append(f"🏁 Track: {circuit_display} technical — burn should be modest; trim throttle in slow corners.")
         if lap_number < 10:
-            st.write(f"🔸 **Race Phase**: Early laps (Lap {lap_number}) - high fuel load affects consumption by ~2-3%")
+            insight_notes.append(f"⏳ Phase: Early stint (Lap {lap_number}) — heavy fuel load adds ~2-3% burn.")
         elif lap_number > 50:
-            st.write(f"🔸 **Race Phase**: Late race (Lap {lap_number}) - light fuel load, tire degradation may increase consumption")
+            insight_notes.append(f"⏳ Phase: Late stint (Lap {lap_number}) — light car, tire deg can raise slip/burn.")
         else:
-            st.write(f"🔸 **Race Phase**: Mid-race (Lap {lap_number}) - optimal fuel load window")
+            insight_notes.append(f"⏳ Phase: Mid-race (Lap {lap_number}) — optimal fuel window.")
+        
+        for note in insight_notes:
+            st.markdown(
+                f"""
+                <div style="background:#003933; padding:0.7rem 0.9rem; border-radius:10px; border-left:4px solid #cedc00; margin-bottom:0.45rem; color:#ffffff;">
+                    {note}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         
         # Recommendations
-        st.markdown("**💡 Recommendations:**")
-        if fuel_proxy > 0.85:
-            st.warning("⚠️ High fuel consumption detected!")
-            st.write("- Reduce RPM by 500-1000 to save fuel")
-            st.write("- Decrease throttle application in low-speed corners")
-            st.write("- Consider more conservative engine mode")
-            if is_power_circuit:
-                st.write("- Maximize DRS usage on straights to reduce drag")
-        elif fuel_proxy < 0.65:
-            st.success("✅ Excellent fuel efficiency!")
-            st.write("- Current settings are very fuel-efficient")
-            st.write("- Can push harder if needed without significant penalty")
+        st.markdown("### 💡 Recommendations")
+        if relative_consumption > high_threshold:
+            recs = [
+                "- Reduce RPM by 500-1000 and short-shift in gears 4-6.",
+                "- Decrease throttle application in low-speed corners.",
+                "- Use conservative engine/ERS mode on long straights.",
+                "- Maximize DRS usage to cut drag (especially on power circuits).",
+            ]
+            tone = "warning"
+            title = "⚠️ High fuel consumption detected!"
+        elif relative_consumption < low_threshold:
+            recs = [
+                "- Current settings are very fuel-efficient.",
+                "- Can push harder if needed with minimal penalty.",
+                "- Maintain smooth throttle ramps to keep efficiency.",
+            ]
+            tone = "success"
+            title = "✅ Excellent fuel efficiency!"
         else:
-            st.info("ℹ️ Balanced fuel consumption")
-            st.write("- Current settings are within normal range")
-            st.write("- Small adjustments can optimize further")
+            recs = [
+                "- Current settings are within normal range.",
+                "- Small short-shifts (200-300 RPM) can trim burn further.",
+                "- Keep DRS uptime high; avoid unnecessary over-revs.",
+            ]
+            tone = "info"
+            title = "ℹ️ Balanced fuel consumption"
+        
+        rec_html = "".join(f"<li>{r}</li>" for r in recs)
+        color_map = {"warning": "#ffb347", "success": "#66ff66", "info": "#cedc00"}
+        st.markdown(
+            f"""
+            <div style="background:#003933; padding:0.95rem 1rem; border-radius:12px; border:2px solid {color_map[tone]}; box-shadow:0 3px 10px rgba(0,0,0,0.35); color:#ffffff;">
+                <div style="font-weight:700; margin-bottom:0.35rem; color:{color_map[tone]};">{title}</div>
+                <ul style="margin:0; padding-left:1.1rem; color:#ffffff; line-height:1.5;">{rec_html}</ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
-def show_about_ai_model(train_df):
-    """About this AI Model - Historical analysis and model training insights."""
-    st.header("🤖 About this AI Model")
-    st.caption("Historical race data and model training information")
+def show_ai_model_briefing(train_df):
+    """AI Model Briefing - Historical analysis and model training insights."""
+    st.header("AI Model Briefing")
+    st.caption("Understand the data, architecture, and rationale behind the model.")
     
     st.info("💡 **Model Training Data** - 676,513 laps from 7 seasons (2018-2024) with 99.41% validation accuracy")
     
@@ -1962,7 +2070,7 @@ def show_about_ai_model(train_df):
 def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder):
     """Race Analysis - Deep dive into past Aston Martin races using FastF1 data."""
     st.header("Past Race Analysis")
-    st.caption("Analyze historical Aston Martin races with real telemetry data from FastF1")
+    st.caption("Analyze past races and identify fuel-efficiency improvements.")
     
     # Import FastF1
     try:
@@ -2056,11 +2164,6 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
                             telemetry_errors.append(f"Lap {lap['LapNumber']}: Empty telemetry DataFrame")
                             lap_telemetry[lap['LapNumber']] = None
                         else:
-                            # Log available columns
-                            if lap['LapNumber'] == 1:
-                                st.write(f"Debug - Lap 1 telemetry columns: {list(tel.columns)}")
-                                st.write(f"Debug - Lap 1 telemetry shape: {tel.shape}")
-                            
                             # Store aggregated telemetry data
                             lap_telemetry[lap['LapNumber']] = {
                                 'rpm': tel['RPM'].mean() if 'RPM' in tel.columns else None,
