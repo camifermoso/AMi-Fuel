@@ -1,0 +1,5 @@
+Scenario,Strategy,Total Fuel Saved/Lap,Fuel Saved (55 laps),Lap Time Impact,When to Use
+1. MINIMAL LAP TIME LOSS,Throttle -2% + RPM -2%,~0.15-0.20%,~0.75-1.00 kg,+0.08-0.18s per lap,Managing to end without fuel concerns
+2. BALANCED FUEL SAVING,Throttle -5% + RPM -3%,~0.40-0.55%,~2.00-2.75 kg,+0.25-0.45s per lap,Need 2-3kg savings over race distance
+3. CRITICAL FUEL SAVING,Throttle -10% + RPM -5% + Speed -2%,~0.80-1.10%,~4.00-5.50 kg,+0.80-1.30s per lap,"Emergency fuel saving, will not finish otherwise"
+4. TIRE & FUEL MANAGEMENT,Throttle -3% + Gear +0.2 higher,~0.20-0.30%,~1.00-1.50 kg,+0.10-0.20s per lap,"Long stints, preserving tires and fuel"

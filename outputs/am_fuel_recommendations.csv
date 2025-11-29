@@ -1,0 +1,13 @@
+Parameter,Current Value (AM),Target Value,Reduction,Fuel Saved/Lap,Fuel Saved (kg/race),Time Cost/Lap,Time Cost/Race,Cost-Benefit,Implementation,AM-Specific Notes
+Average RPM,10022.5 RPM,9020.2 RPM,10%,10.28%,8.48 kg,0.400s,22.00s,0.385 kg/s,"Aggressive short-shifting, upshift 2000 RPM early",Risk losing exit speed on slower corners
+Average RPM,10022.5 RPM,9521.3 RPM,5%,5.14%,4.24 kg,0.150s,8.25s,0.514 kg/s,"Short-shift by 1000 RPM, avoid redline",Good low-end torque - short-shifting effective
+Average Speed,199.3 km/h,179.4 km/h,10%,4.60%,3.80 kg,1.250s,68.75s,0.055 kg/s,Significant speed reduction (major time loss),Last resort - significant competitiveness impact
+Average Throttle,62.9 %,56.6 %,10%,4.21%,3.47 kg,0.500s,27.50s,0.126 kg/s,"Lift & coast before braking, reduce peak throttle",May affect tire temps - monitor closely
+Average Gear,5.1 ,4.6 ,10%,3.69%,3.05 kg,0.650s,35.75s,0.085 kg/s,Significant gear changes (affects driveability),Check with driver comfort - major change
+Average Speed,199.3 km/h,189.3 km/h,5%,2.30%,1.90 kg,0.550s,30.25s,0.063 kg/s,Moderate lift in high-speed corners,Consider trade-off with tire deg on long stints
+Average Throttle,62.9 %,59.7 %,5%,2.11%,1.74 kg,0.200s,11.00s,0.158 kg/s,"Smooth throttle application, avoid aggressive inputs",AMR23/24 has good aero - can coast more
+Average RPM,10022.5 RPM,9822.0 RPM,2%,2.06%,1.70 kg,0.055s,3.02s,0.561 kg/s,Short-shift by 500 RPM,Mercedes PU optimal torque curve allows early shifts
+Average Gear,5.1 ,4.9 ,5%,1.85%,1.52 kg,0.225s,12.38s,0.123 kg/s,Skip gears where possible,May feel unnatural for driver - practice needed
+Average Speed,199.3 km/h,195.3 km/h,2%,0.92%,0.76 kg,0.200s,11.00s,0.069 kg/s,Slightly conservative corner entries,AMR aero efficiency helps maintain speed with less throttle
+Average Throttle,62.9 %,61.6 %,2%,0.84%,0.69 kg,0.075s,4.12s,0.168 kg/s,Lift 50m earlier in braking zones,Mercedes PU responds well to smooth inputs
+Average Gear,5.1 ,5.0 ,2%,0.74%,0.61 kg,0.075s,4.12s,0.148 kg/s,Use higher gear in slow corners,Use 8-speed gearbox efficiency

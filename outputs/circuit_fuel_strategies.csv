@@ -1,0 +1,5 @@
+Circuit Type,Key Parameters,Best Strategy,Lap Time Cost,Notes
+"HIGH-SPEED (Monza, Spa)","Throttle, RPM, DRS","Reduce peak RPM by 3%, smooth throttle (save ~2.5kg/race)",+0.20-0.35s,High fuel consumption circuits - savings matter most here
+"STREET (Monaco, Singapore)","Throttle, Gear selection","Higher gear in slow corners, -5% throttle (save ~2.0kg/race)",+0.15-0.25s,"Lower speeds = less fuel usage, easier to save"
+"MIXED (Barcelona, Silverstone)",Balanced approach,"Throttle -3%, RPM -2% (save ~1.5kg/race)",+0.15-0.25s,Balance fuel saving with lap time
+"HIGH ALTITUDE (Mexico, Brazil)","RPM, ERS deployment","Optimize ERS usage, reduce RPM peaks (save ~2.0kg/race)",+0.10-0.20s,Thinner air = different fuel characteristics
