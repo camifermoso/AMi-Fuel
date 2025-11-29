@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 from pathlib import Path
 import joblib
 from datetime import datetime
@@ -38,6 +39,12 @@ FUEL_BASELINES_KG = {
     "abudhabi": 1.74, "abu dhabi": 1.74, "yas marina": 1.74
 }
 FUEL_PROXY_ANCHOR = 1.00  # model proxy ~1.0 represents typical lap fuel consumption
+
+# Global Plotly template to ensure readable titles on dark background
+custom_template = go.layout.Template(pio.templates["plotly_dark"])
+custom_template.layout.title = go.layout.Title(font=dict(color="#ffffff"))
+pio.templates["ami_dark_titles"] = custom_template
+pio.templates.default = "ami_dark_titles"
 
 # Page configuration
 st.set_page_config(
@@ -1581,55 +1588,16 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
             st.metric("vs Baseline", f"{relative_consumption:+.1f}%", help="Compared to typical consumption")
         
         # Thresholds for status/strategies
-        high_threshold = 22 if is_power_circuit else 18  # % above baseline
-        low_threshold = -10  # % below baseline
-        
-        # Targeted reduction planner
-        reduction_target = st.number_input(
-            "Target fuel reduction (%)",
-            min_value=0.0,
-            max_value=30.0,
-            value=6.0,
-            step=0.5,
-            help="Enter how much you want to cut current fuel burn (percentage of current kg/lap).",
-        )
-        if reduction_target > 0:
-            target_fuel = fuel_kg_per_lap * (1 - reduction_target / 100)
-            st.info(f"🎛️ Target: lower to ~{target_fuel:.3f} kg/lap ({reduction_target:.1f}% cut from {fuel_kg_per_lap:.3f} kg/lap)")
-            if reduction_target >= 15:
-                actions = [
-                    "Aggressive lift/coast: brake points +90-120m earlier on heavy stops.",
-                    "Short-shift by 400-600 RPM on exits; avoid full throttle until straightened.",
-                    "Engine mode Fuel 2/3 + Low ERS deploy on longest straights.",
-                    "DRS prioritize: maximize openings; trim wing if balance allows.",
-                ]
-            elif reduction_target >= 8:
-                actions = [
-                    "Moderate lift/coast: lift 60-80m earlier into T1/T2/T3.",
-                    "Short-shift by 250-400 RPM; smooth throttle ramps in slow corners.",
-                    "Balanced ERS deploy: shift energy to mid-length straights.",
-                    "Brake migration tweaks to reduce micro-locks and drag losses.",
-                ]
-            else:
-                actions = [
-                    "Micro lift/coast: lift 30-50m early into heavy stops.",
-                    "Short-shift by ~200 RPM; avoid minor wheelspin on exits.",
-                    "Keep DRS uptime high; minor front-wing trim for straightline gain.",
-                    "Stay in balanced ERS mode; avoid over-deploy on the longest straight.",
-                ]
-            for tip in actions:
-                st.markdown(
-                    f"""
-                    <div style="background:#003933; padding:0.6rem 0.75rem; border-radius:8px; border-left:4px solid #cedc00; margin-bottom:0.45rem;">
-                        <div style="color:#ffffff; font-size:0.95rem;">{tip}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        high_fuel_kg = 1.90  # treat anything over this as high burn
         
         # Visual gauge (kg/lap scale)
         baseline = fuel_proxy_to_kg(circuit_key, FUEL_PROXY_ANCHOR)
-        max_range = max(2.5, baseline * 1.6, fuel_kg_per_lap * 1.3)
+        # Gauge bands with absolute red trigger at 1.95 kg/lap
+        red_start = 1.95
+        step1_end = max(0.5, baseline * 0.95)
+        step2_end = max(step1_end + 0.05, baseline * 1.05, red_start - 0.15)
+        step3_end = red_start
+        max_range = max(2.5, fuel_kg_per_lap * 1.3, red_start * 1.2)
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=fuel_kg_per_lap,
@@ -1641,9 +1609,9 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
                 'bar': {'color': "#00594C"},
                 'steps': [
                     {'range': [0, baseline * 0.95], 'color': "lightgreen"},
-                    {'range': [baseline * 0.95, baseline * 1.05], 'color': "yellow"},
-                    {'range': [baseline * 1.05, baseline * 1.20], 'color': "orange"},
-                    {'range': [baseline * 1.20, max_range], 'color': "red"}
+                    {'range': [step1_end, step2_end], 'color': "yellow"},
+                    {'range': [step2_end, step3_end], 'color': "orange"},
+                    {'range': [step3_end, max_range], 'color': "red"}
                 ],
                 'threshold': {
                     'line': {'color': "white", 'width': 4},
@@ -1657,8 +1625,7 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
         
         # Dynamic strategy suggestions based on live burn rate
         # Setup-style levers (RPM / Throttle / Speed) with reduction, fuel saved, time cost, efficiency
-        st.subheader("🔧 Setup Lever Recommendations")
-        if relative_consumption > high_threshold:
+        if fuel_kg_per_lap > high_fuel_kg:
             levers = [
                 {"label": "Average RPM", "reduction": 12, "note": "Cap revs early on straights; short-shift consistently."},
                 {"label": "Average Throttle", "reduction": 10, "note": "Smoother ramps in slow/medium corners; avoid flat-out drags."},
@@ -1727,7 +1694,7 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
                     )
 
         # Setup-style levers (RPM / Throttle / Speed) with reduction, fuel saved, time cost, efficiency
-        st.subheader("🔧 Setup Lever Recommendations")
+        st.subheader("Strategic Recommendations")
         for lever in lever_cards:
             st.markdown(
                 f"""
@@ -1745,101 +1712,12 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
                 unsafe_allow_html=True,
             )
 
-        # Dynamic strategy suggestions based on live burn rate (after levers)
-        st.subheader("🎯 Live Strategy Recommendations")
-        strategies = []
-        # Thresholds based on relative burn vs baseline
-        if relative_consumption > high_threshold:
-            strategies = [
-                {
-                    "name": "Heavy Lift/Coast + Short Shift",
-                    "fuel": "0.25-0.35 kg/lap saved",
-                    "time": "0.05-0.08s cost",
-                    "note": "Lift 90-120m early, cap avg RPM ~10.6-10.9k, drop avg throttle to mid-60s%, target avg speed -5 km/h, short-shift 400-600 RPM."
-                },
-                {
-                    "name": "Low ERS Deploy + Engine Mode Fuel 2",
-                    "fuel": "0.10-0.18 kg/lap saved",
-                    "time": "0.04-0.07s cost",
-                    "note": "Use conservative engine mode on long straights; shift ERS deploy later in gears 4-6; keep avg gear one step higher in slow corners."
-                },
-                {
-                    "name": "DRS Priority + Anti-Drag Trim",
-                    "fuel": "0.06-0.10 kg/lap saved",
-                    "time": "Minimal",
-                    "note": "Maximize DRS uptime; trim flap if balance allows; aim avg throttle <65% on non-DRS corners to cut drag losses."
-                },
-            ]
-        elif relative_consumption > 6:
-            strategies = [
-                {
-                    "name": "Moderate Lift/Coast + Brake Regen",
-                    "fuel": "0.14-0.22 kg/lap saved",
-                    "time": "0.03-0.05s cost",
-                    "note": "Lift 60-80m early into heavy stops; cap avg RPM to ~11.1k; hold avg throttle high-60s%; drop avg speed ~3 km/h; lean on brake regen."
-                },
-                {
-                    "name": "ERS Balanced Deploy",
-                    "fuel": "0.05-0.09 kg/lap saved",
-                    "time": "Minimal",
-                    "note": "Shift deploy to mid-corner exits; avoid full deploy on the longest straight; short-shift 250-350 RPM in gears 4-6."
-                },
-                {
-                    "name": "Throttle/Traction Tidy",
-                    "fuel": "0.03-0.06 kg/lap saved",
-                    "time": "Minimal",
-                    "note": "Smooth throttle ramps; keep avg throttle ~68-72%; avoid over-revs on exits; use traction maps to cut wheelspin in low gears."
-                },
-            ]
-        else:
-            strategies = [
-                {
-                    "name": "Push With DRS Efficiency",
-                    "fuel": "Maintain",
-                    "time": "Gain 0.02-0.04s",
-                    "note": "Maintain burn: keep avg RPM <11.5k, throttle ~72-75%; maximize DRS uptime; minor front-wing trim for speed."
-                },
-                {
-                    "name": "Targeted ERS Attack",
-                    "fuel": "Maintain",
-                    "time": "Gain 0.03-0.06s",
-                    "note": "Deploy on top-2 straights only; avoid over-revs (>11.6k) in gears 6-7; keep avg speed on target without dragging throttle."
-                },
-                {
-                    "name": "Brake/Shift Fine-Tune",
-                    "fuel": "0.02-0.04 kg/lap saved",
-                    "time": "Neutral",
-                    "note": "Use brake migration to stabilize entries; short-shift ~200 RPM in slow exits; keep avg gear slightly higher to cut revs without pace loss."
-                },
-            ]
-        
-        for strat in strategies:
-            st.markdown(
-                f"""
-                <div style="background:#003933; padding:0.9rem 1rem; border-radius:10px; border-left:4px solid #cedc00; margin-bottom:0.6rem; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-                        <div style="font-weight:700; color:#ffffff;">{strat['name']}</div>
-                        <div style="font-size:0.8rem; color:#cedc00;">Fuel: {strat['fuel']}</div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-                        <div style="font-size:0.85rem; color:#cedc00;">Time: {strat['time']}</div>
-                        <div style="font-size:0.75rem; color:#66ff66; font-weight:600;">Live-adjusted</div>
-                    </div>
-                    <div style="font-size:0.85rem; color:#ffffff;">{strat['note']}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        
         # Circuit-specific and driver-specific insights
         st.markdown("### 🎯 Context-Aware Insights")
         insight_notes = []
         if rainfall_input:
             insight_notes.append("🌧️ Weather: Rain adds ~6.5% burn from low grip and wheel spin.")
-        if driver == "Fernando Alonso":
-            insight_notes.append(f"🧠 Alonso style: {'Efficient' if fuel_proxy < 0.70 else 'Higher than usual'} burn for his smooth driving profile.")
-        else:
-            insight_notes.append(f"🎯 Stroll style: {'Normal' if 0.65 < fuel_proxy < 0.75 else 'Higher than typical'} — watch exits.")
+        # Driver style note removed to keep messaging concise
         if is_power_circuit:
             insight_notes.append(f"⚡ Track: {circuit_display} power circuit — expect higher burn; maximize DRS and short-shift on exits.")
         else:
@@ -1861,45 +1739,6 @@ def show_live_calculator(model, calibrator, scaler, scalers_per_team, team_encod
                 unsafe_allow_html=True,
             )
         
-        # Recommendations
-        st.markdown("### 💡 Recommendations")
-        if relative_consumption > high_threshold:
-            recs = [
-                "- Reduce RPM by 500-1000 and short-shift in gears 4-6.",
-                "- Decrease throttle application in low-speed corners.",
-                "- Use conservative engine/ERS mode on long straights.",
-                "- Maximize DRS usage to cut drag (especially on power circuits).",
-            ]
-            tone = "warning"
-            title = "⚠️ High fuel consumption detected!"
-        elif relative_consumption < low_threshold:
-            recs = [
-                "- Current settings are very fuel-efficient.",
-                "- Can push harder if needed with minimal penalty.",
-                "- Maintain smooth throttle ramps to keep efficiency.",
-            ]
-            tone = "success"
-            title = "✅ Excellent fuel efficiency!"
-        else:
-            recs = [
-                "- Current settings are within normal range.",
-                "- Small short-shifts (200-300 RPM) can trim burn further.",
-                "- Keep DRS uptime high; avoid unnecessary over-revs.",
-            ]
-            tone = "info"
-            title = "ℹ️ Balanced fuel consumption"
-        
-        rec_html = "".join(f"<li>{r}</li>" for r in recs)
-        color_map = {"warning": "#ffb347", "success": "#66ff66", "info": "#cedc00"}
-        st.markdown(
-            f"""
-            <div style="background:#003933; padding:0.95rem 1rem; border-radius:12px; border:2px solid {color_map[tone]}; box-shadow:0 3px 10px rgba(0,0,0,0.35); color:#ffffff;">
-                <div style="font-weight:700; margin-bottom:0.35rem; color:{color_map[tone]};">{title}</div>
-                <ul style="margin:0; padding-left:1.1rem; color:#ffffff; line-height:1.5;">{rec_html}</ul>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
 
 def show_ai_model_briefing(train_df):
@@ -1922,6 +1761,7 @@ def show_ai_model_briefing(train_df):
         st.metric("Teams", "18", help="F1 teams included")
     
     st.markdown("---")
+    
     
     # Aston Martin specific
     st.subheader("🏎️ Aston Martin Training Data")
@@ -2236,9 +2076,6 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
     with col3:
         avg_speed = laps['SpeedST'].mean() if 'SpeedST' in laps.columns else 0
         st.metric("Avg Speed", f"{avg_speed:.1f} km/h")
-    with col4:
-        compounds = laps['Compound'].unique()
-        st.metric("Tire Compounds", ", ".join([c for c in compounds if pd.notna(c)]))
     
     # Tab layout for different analyses
     tab1, tab2, tab3, tab4 = st.tabs(["📋 Lap-by-Lap", "📈 Telemetry Charts", "🗺️ Track Map", "⛽ Fuel Estimation"])
@@ -2251,7 +2088,6 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
             'Lap': laps['LapNumber'],
             'Lap Time': laps['LapTime'].apply(lambda x: str(x).split()[-1] if pd.notna(x) else 'N/A'),
             'Compound': laps['Compound'],
-            'Stint': laps['Stint'],
             'Speed ST (km/h)': laps['SpeedST'].round(1) if 'SpeedST' in laps.columns else 'N/A',
             'Speed I1': laps['SpeedI1'].round(1) if 'SpeedI1' in laps.columns else 'N/A',
             'Speed I2': laps['SpeedI2'].round(1) if 'SpeedI2' in laps.columns else 'N/A',
@@ -2270,75 +2106,6 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
             mime="text/csv"
         )
         
-        st.markdown("---")
-        st.markdown("#### Fuel-Adjusted Lap Time Model")
-        st.caption("Uses FastF1 lap times plus a 0.03s/kg fuel effect to estimate burn rate and show fuel-corrected laps.")
-        
-        stint_options = ["All stints"] + sorted([str(s) for s in laps['Stint'].dropna().unique()])
-        selected_stint = st.selectbox("Stint", stint_options, help="Choose a stint to analyze fuel effect on lap times")
-        initial_fuel = st.number_input("Initial Fuel Load (kg)", min_value=60.0, max_value=115.0, value=110.0, step=1.0)
-        fuel_effect = st.number_input("Fuel Weight Effect (s/kg)", min_value=0.01, max_value=0.05, value=0.03, step=0.005)
-        
-        stint_mask = laps['Stint'].astype(str) == selected_stint if selected_stint != "All stints" else np.ones(len(laps), dtype=bool)
-        stint_laps = laps[stint_mask].copy()
-        stint_laps = stint_laps[pd.notna(stint_laps['LapTime'])]
-        
-        if len(stint_laps) >= 3:
-            # Build lap index starting at zero for slope fit
-            stint_laps = stint_laps.sort_values('LapNumber').reset_index(drop=True)
-            stint_laps['LapTime_s'] = stint_laps['LapTime'].dt.total_seconds()
-            x_idx = np.arange(len(stint_laps))
-            y_time = stint_laps['LapTime_s'].values
-            
-            # Linear fit of lap time vs lap index; slope ≈ -burn_rate * fuel_effect
-            slope, intercept = np.polyfit(x_idx, y_time, 1)
-            est_burn_rate = max(0.0, -slope / fuel_effect)
-            base_lap = intercept - initial_fuel * fuel_effect  # lap time with zero fuel using fitted line
-            
-            # Compute remaining fuel curve and corrected lap times
-            stint_laps['Fuel Remaining (kg)'] = np.clip(initial_fuel - est_burn_rate * x_idx, a_min=0, a_max=None)
-            stint_laps['Fuel-Corrected Lap (s)'] = stint_laps['LapTime_s'] - stint_laps['Fuel Remaining (kg)'] * fuel_effect
-            
-            col_f1, col_f2, col_f3 = st.columns(3)
-            with col_f1:
-                st.metric("Estimated Burn Rate", f"{est_burn_rate:.3f} kg/lap", help="Derived from lap-time slope and 0.03s/kg fuel effect")
-            with col_f2:
-                st.metric("No-Fuel Pace (est.)", f"{base_lap:.3f} s", help="Lap time extrapolated to zero fuel using fitted line")
-            with col_f3:
-                st.metric("Avg Corrected Lap", f"{stint_laps['Fuel-Corrected Lap (s)'].mean():.3f} s")
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=stint_laps['LapNumber'],
-                y=stint_laps['LapTime_s'],
-                mode='lines+markers',
-                name='Recorded Lap Time',
-                line=dict(color='#cedc00', width=2),
-                marker=dict(size=6)
-            ))
-            fig.add_trace(go.Scatter(
-                x=stint_laps['LapNumber'],
-                y=stint_laps['Fuel-Corrected Lap (s)'],
-                mode='lines+markers',
-                name='Fuel-Corrected Lap',
-                line=dict(color='#66ff66', width=2, dash='dot'),
-                marker=dict(size=6)
-            ))
-            fig.update_layout(
-                title="Lap Times vs Fuel-Corrected Lap Times",
-                xaxis_title="Lap Number",
-                yaxis_title="Lap Time (s)",
-                plot_bgcolor='#003933',
-                paper_bgcolor='#004b45',
-                font=dict(color='#ffffff'),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            st.caption("Assumes monotonic fuel burn; unexpected trends may reflect traffic, tires, VSC/SC, or lifts.")
-        else:
-            st.info("Need at least 3 laps with valid lap times to estimate fuel burn.")
-    
     with tab2:
         st.markdown("### Telemetry Analysis")
         
@@ -2506,6 +2273,7 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
             # Prepare features for each lap using pre-loaded telemetry
             fuel_estimates = []
             lap_telemetry = race_data.get('telemetry', {})
+            baseline_kg = fuel_proxy_to_kg(race_key, FUEL_PROXY_ANCHOR)
             
             for idx, lap in laps.iterrows():
                 avg_speed = 200
@@ -2591,6 +2359,24 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
             
             if fuel_estimates:
                 fuel_df = pd.DataFrame(fuel_estimates)
+                
+                # Normalize totals to realistic race fuel windows while preserving lap-to-lap variation
+                raw_total = fuel_df['Estimated Fuel (kg/lap)'].sum()
+                # Circuit-specific targets (Monaco slightly lower)
+                target_min = 95.0 if "monaco" in race_key else 100.0
+                target_max = 100.0 if "monaco" in race_key else 105.0
+                hard_cap = 110.0
+                scale_factor = 1.0
+                if raw_total > 0:
+                    if raw_total < target_min:
+                        scale_factor = target_min / raw_total
+                    elif raw_total > target_max:
+                        scale_factor = target_max / raw_total
+                    fuel_df['Estimated Fuel (kg/lap)'] = fuel_df['Estimated Fuel (kg/lap)'] * scale_factor
+                    # Enforce absolute cap
+                    total_after = fuel_df['Estimated Fuel (kg/lap)'].sum()
+                    if total_after > hard_cap:
+                        fuel_df['Estimated Fuel (kg/lap)'] *= hard_cap / total_after
                 
                 # Show data quality info
                 telemetry_count = len(fuel_df[fuel_df['Data Source'] == 'Telemetry'])
@@ -2688,37 +2474,6 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
-                
-                # Stint analysis
-                st.markdown("#### 🔄 Stint Breakdown")
-                stint_analysis = fuel_df.groupby(fuel_df.index // 15).agg({
-                    'Estimated Fuel': ['sum', 'mean', 'count']
-                }).round(3)
-                stint_analysis.columns = ['Total Fuel', 'Avg/Lap', 'Laps']
-                stint_analysis.index = [f"Stint {i+1}" for i in stint_analysis.index]
-                
-                col1, col2 = st.columns([1, 2])
-                with col1:
-                    st.dataframe(stint_analysis, use_container_width=True)
-                with col2:
-                    fig_stint = go.Figure()
-                    fig_stint.add_trace(go.Bar(
-                        x=stint_analysis.index,
-                        y=stint_analysis['Total Fuel'],
-                        marker_color='#cedc00',
-                        text=stint_analysis['Total Fuel'],
-                        textposition='auto',
-                        hovertemplate='<b>%{x}</b><br>Total: %{y:.2f} units<extra></extra>'
-                    ))
-                    fig_stint.update_layout(
-                        title="Fuel Consumption by Stint",
-                        xaxis_title="Stint",
-                        yaxis_title="Total Fuel (units)",
-                        plot_bgcolor='#003933',
-                        paper_bgcolor='#004b45',
-                        font=dict(color='#ffffff')
-                    )
-                    st.plotly_chart(fig_stint, use_container_width=True)
                 
                 # Data table
                 st.dataframe(fuel_df, use_container_width=True)
