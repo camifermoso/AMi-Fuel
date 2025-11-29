@@ -1815,6 +1815,24 @@ def show_about_ai_model(train_df):
     
     st.markdown("---")
     
+    # Aston Martin specific
+    st.subheader("🏎️ Aston Martin Training Data")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("AM Laps", "44,580", help="Aston Martin specific laps")
+    with col2:
+        st.metric("% of Dataset", "6.6%", help="Proportion dedicated to AM")
+    with col3:
+        st.metric("Years", "2018-2024", help="Full historical coverage")
+    
+    st.write("")
+    st.success("✅ **Model trained with per-team normalization** to account for different car performances")
+    st.info("ℹ️ **Two-stage training:** Pre-trained on all teams (676K laps) → Fine-tuned on Aston Martin (44K laps)")
+    
+    st.markdown("---")
+    
     # Circuit breakdown
     st.subheader("🗺️ Circuit Coverage")
     image_path = Path("assets/Circuits.png")
@@ -1828,7 +1846,7 @@ def show_about_ai_model(train_df):
             """,
             unsafe_allow_html=True,
         )
-        st.info("💡 Circuit coverage training mix: high-fuel circuits have 7 full seasons of data, while technical and mixed layouts add three seasons each to diversify race pace patterns.")
+        st.info("💡 Circuit coverage training mix: high-fuel circuits have 7 full seasons of data, while technical and mixed layouts add three seasons each to diversify race pace patterns. Only a few circuits and limited laps per circuit were used to keep the model from overfitting.")
     else:
         st.warning("Circuit coverage image not found.")
     
@@ -1857,25 +1875,8 @@ def show_about_ai_model(train_df):
     
     st.markdown("---")
     
-    # Aston Martin specific
-    st.subheader("🏎️ Aston Martin Training Data")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("AM Laps", "44,580", help="Aston Martin specific laps")
-    with col2:
-        st.metric("% of Dataset", "6.6%", help="Proportion dedicated to AM")
-    with col3:
-        st.metric("Years", "2018-2024", help="Full historical coverage")
-    
-    st.write("")
-    st.success("✅ **Model trained with per-team normalization** to account for different car performances")
-    st.info("ℹ️ **Two-stage training:** Pre-trained on all teams (575K laps) → Fine-tuned on Aston Martin (44K laps)")
-    
     # If actual data is loaded, show live visualizations
     if train_df is not None:
-        st.markdown("---")
         st.subheader("📊 Live Data Visualizations")
         st.info("💡 Enhanced visualizations available with loaded training data")
         
@@ -1966,7 +1967,9 @@ def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder
     # Import FastF1
     try:
         import fastf1
-        fastf1.Cache.enable_cache('cache')
+        cache_dir = Path("cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        fastf1.Cache.enable_cache(cache_dir)
     except ImportError:
         st.error("❌ FastF1 not installed. Run: `pip install fastf1`")
         return
