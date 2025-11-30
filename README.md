@@ -1,7 +1,7 @@
 # 🏎️ **AMi-Fuel — Aston Martin Intelligent Fuel**  
 **Fuel Strategy Intelligence for Formula 1**
 
-AMi-Fuel is a high-resolution fuel-consumption intelligence system built for the **Aston Martin x Aramco F1 Engineering Challenge**.  
+AMi-Fuel is a high-resolution fuel-consumption intelligence system built for the **Aston Martin Formula 1 Team x Aramco STEM Challenge**.  
 It blends a calibrated machine-learning model with an F1-inspired professional dashboard to estimate per-lap fuel usage, analyze race stints, and support strategic decision-making with clarity and engineering rigor.
 
 🔥 **Live Demo:**  
