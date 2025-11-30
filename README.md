@@ -38,8 +38,7 @@ Explains the model: training coverage, decisions made, feature engineering, cali
 
 ## 🧩 **Model Summary**
 
-AMi-Fuel uses a **tree-based regression stack**, not a CNN.  
-This choice reflects the nature of the inputs: **engineered lap summaries**, not raw multivariate time series.
+AMi-Fuel uses a **tree-based regression stack**. 
 
 ### ✔ Architecture  
 - **Gradient Boosting Regressor**  
@@ -68,11 +67,9 @@ Tree ensembles offer:
 - robustness to telemetry noise  
 - easy calibration for domain constraints  
 
-CNNs would be appropriate for raw time-series patterns — not for lap-level engineered summaries.
-
 ---
 
-# 🧼 **Data Pipeline**
+# **Data Pipeline**
 
 ### **Cleaning**
 - Duplicate removal  
@@ -88,14 +85,6 @@ Telemetry is aggregated per lap:
 - Standard deviation for variability  
 - Sector-level summaries
 
-### **Feature Engineering**
-Physics-inspired derived features:
-- `power_estimate`  
-- `energy_intensity`  
-- `drs_speed_factor`  
-- `speed_per_gear`  
-- `speed_variance`  
-
 ### **Scaling**
 Uses **RobustScaler** (median + IQR) for stability across noisy telemetry distributions.
 
@@ -108,27 +97,6 @@ Typical behavior:
 - **MAE:** 0.02–0.04  
 - Consistent predictions across circuits  
 - High stability across folds  
-
-Most influential features:
-- `avg_rpm`  
-- `avg_throttle`  
-- `power_estimate`  
-- `avg_speed`  
-- `energy_intensity`
-
----
-
-# 🧮 **Optimization Insights**
-
-AMi-Fuel frequently identifies:
-- **1–3%** fuel savings from throttle shaping  
-- **0.5–1.5%** savings from ERS refinement  
-- Combined improvements **2–5%** with minimal lap-time cost  
-
-Recommendations often target:
-- smoother throttle application on straights  
-- optimized ERS deployment zones  
-- reducing inefficiency spikes in specific sectors  
 
 ---
 
