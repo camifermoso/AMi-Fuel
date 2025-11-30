@@ -5,7 +5,7 @@ AMi-Fuel is a high-resolution fuel-consumption intelligence system built for the
 It blends a calibrated machine-learning model with an F1-inspired professional dashboard to estimate per-lap fuel usage, analyze race stints, and support strategic decision-making with clarity and engineering rigor.
 
 🔥 **Live Demo:**  
-👉 **https://camifermoso-ami-fuel.streamlit.app**
+👉 **https://ami-fuel.streamlit.app/**
 
 No setup required — just click and use.
 
