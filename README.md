@@ -9,6 +9,7 @@ It blends a calibrated machine-learning model with an F1-inspired professional d
 
 No setup required — just click and use.
 
+![Demo](assets/running.gif)
 ---
 
 ## 🚀 **What AMi-Fuel Does**
