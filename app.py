@@ -1909,7 +1909,7 @@ def show_ai_model_briefing(train_df):
 
 def show_race_analysis(model, calibrator, scaler, scalers_per_team, team_encoder, circuit_encoder):
     """Race Analysis - Deep dive into past Aston Martin races using FastF1 data."""
-    st.header("Past Race Analysis")
+    st.header("Race Fuel Debrief")
     st.caption("Analyze past races and identify fuel-efficiency improvements.")
     
     # Import FastF1
