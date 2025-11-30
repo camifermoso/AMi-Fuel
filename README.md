@@ -11,6 +11,14 @@ No setup required — just click and use.
 
 ![Demo](assets/running.gif)
 ---
+## 🏁 Motivation
+
+AMi-Fuel was born from a simple question that’s been stuck in my mind since the **2021 Hungarian Grand Prix**, when Sebastian Vettel was disqualified for finishing with less than the required 1-litre fuel sample — despite delivering one of the best drives of the season.
+
+That moment made something click for me:  
+**how does a Formula 1 team accurately model fuel usage when race conditions are constantly changing?**
+
+This project is my attempt to explore that question through data, machine learning, and engineering intuition. With AMi-Fuel, I wanted to build a tool that helps analyze and understand the tiny decisions — RPM, throttle, DRS usage, pace, energy deployment — that influence fuel consumption lap by lap.
 
 ## 🚀 **What AMi-Fuel Does**
 
